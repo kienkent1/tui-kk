@@ -1,2 +1,3 @@
-mod docker_conn;
-mod config;
+pub mod config;
+pub mod docker_conn;
+pub mod logging;

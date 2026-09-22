@@ -2,7 +2,10 @@
 name = "tui-kk"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85.0"
+rust-version = "1.88.0"
+
+[package.metadata]
+app_prefix = "tuikk"
 
 [dependencies]
 arc-swap = "1.9.2"
@@ -14,5 +17,11 @@ futures-util = "0.3.34"
 ratatui = "0.30.2"
 serde = "1.0.229"
 thiserror = "2.0.20"
-tokio = "1.53.1"
+tokio =  { version = "1.53.1", features = ["macros", "rt-multi-thread", "sync", "time"] } # full
+toml = "1.1.6"
+tracing = "0.1.44"
+tracing-appender = "0.2.5"
+tracing-subscriber = "0.3.23"
+
+[build-dependencies]
 toml = "1.1.6"
