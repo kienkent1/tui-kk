@@ -1,5 +1,6 @@
 mod app;
 mod tuikk_core;
+mod shared;
 
 use color_eyre::Result;
 

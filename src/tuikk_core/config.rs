@@ -32,12 +32,14 @@ pub enum DefaultConnectionType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AppConfig {
     pub default_conn_type: DefaultConnectionType,
     pub docker_url: Option<String>,
     pub timeout: u64,
     pub max_connections: usize,
     pub theme: String,
+    pub log_level: String,
 }
 
 impl Default for AppConfig {
@@ -48,6 +50,7 @@ impl Default for AppConfig {
             max_connections: 20,
             theme: "default".to_string(),
             default_conn_type: DefaultConnectionType::SOCKET,
+            log_level: "error".to_owned(),
         }
     }
 }
@@ -85,8 +88,9 @@ impl AppConfig {
         match Self::load_from_file() {
             Ok(cfg) => cfg,
             Err(err) => {
-                eprintln!(
-                    "[Warning] Unable to read configuration file: {err}. Using default config."
+                tracing::warn!(
+                    error = %err,
+                    "Unable to read configuration file: {err}. Using default config."
                 );
                 Self::default()
             }
