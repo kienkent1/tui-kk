@@ -12,7 +12,9 @@ pub enum BaseErr {
     #[error("Failed to restore terminal state: {0}")]
     TerminalRestoreFailed(#[source] std::io::Error),
 
-    #[error("Terminal window size too small: current {width}x{height}, required min {min_width}x{min_height}")]
+    #[error(
+        "Terminal window size too small: current {width}x{height}, required min {min_width}x{min_height}"
+    )]
     TerminalTooSmall {
         width: u16,
         height: u16,
@@ -36,10 +38,7 @@ pub enum BaseErr {
     ConfigNotFound { path: PathBuf },
 
     #[error("Failed to parse configuration: {reason}")]
-    ConfigParseError {
-        path: PathBuf,
-        reason: String,
-    },
+    ConfigParseError { path: PathBuf, reason: String },
 
     #[error("Serialization error: {0}")]
     Serialization(String),

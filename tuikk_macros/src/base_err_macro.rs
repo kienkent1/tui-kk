@@ -4,7 +4,7 @@ use syn::{Item, Path};
 
 pub(crate) fn extend_base_err(args: TokenStream, input: TokenStream) -> syn::Result<TokenStream> {
     let base_path: Path = if args.is_empty() {
-        syn::parse_quote!(crate::tuikk_core::errors::BaseErr)
+        syn::parse_quote!(crate::shared::base::base_err::BaseErr)
     } else {
         syn::parse2(args)?
     };

@@ -2,9 +2,9 @@ use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::fs::{create_dir_all, read_to_string, write};
 use std::path::PathBuf;
-use thiserror::Error;
+use tuikk_macros::extend_base_err;
 
-#[derive(Error, Debug)]
+#[extend_base_err]
 pub enum ConfigError {
     #[error("Unable to determine the system configuration directory")]
     NoConfigDir,
@@ -19,25 +19,9 @@ pub enum ConfigError {
     Serialize(#[from] toml::ser::Error),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DefaultConnectionType {
-    #[serde(rename = "http")]
-    HTTP,
-
-    #[serde(rename = "socket")]
-    SOCKET,
-
-    #[serde(rename = "local")]
-    LOCAL,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct AppConfig {
-    pub default_conn_type: DefaultConnectionType,
-    pub docker_url: Option<String>,
-    pub timeout: u64,
-    pub max_connections: usize,
     pub theme: String,
     pub log_level: String,
 }
@@ -45,21 +29,21 @@ pub struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            docker_url: None,
-            timeout: 120,
-            max_connections: 20,
             theme: "default".to_string(),
-            default_conn_type: DefaultConnectionType::SOCKET,
             log_level: "error".to_owned(),
         }
     }
 }
 
+// =========Constants=============
+const CONFIG_FILE_NAME: &str = "config.toml";
+
 impl AppConfig {
     /// Linux/macOS: ~/.config/tuikk/config.toml
     /// Windows: C:\Users\<User>\AppData\Roaming\tuikk\config.toml
     pub fn config_path() -> Result<PathBuf, ConfigError> {
-        let proj_dirs = ProjectDirs::from("", "", "tuikk").ok_or(ConfigError::NoConfigDir)?;
+        let proj_dirs =
+            ProjectDirs::from("", "", env!("APP_PREFIX")).ok_or(ConfigError::NoConfigDir)?;
 
         let config_dir = proj_dirs.config_dir();
 
@@ -67,7 +51,7 @@ impl AppConfig {
             create_dir_all(config_dir)?;
         }
 
-        Ok(config_dir.join("config.toml"))
+        Ok(config_dir.join(CONFIG_FILE_NAME))
     }
 
     pub fn load_from_file() -> Result<Self, ConfigError> {

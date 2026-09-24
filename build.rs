@@ -5,7 +5,9 @@ fn main() {
 
     let parsed: toml::Value = toml::from_str(&cargo_toml_str).expect("Failed to parse Cargo.toml");
 
-    println!("cargo:warning=\x1b[1;36m==================== [BUILD.RS METADATA] ====================\x1b[0m");
+    println!(
+        "cargo:warning=\x1b[1;36m==================== [BUILD.RS METADATA] ====================\x1b[0m"
+    );
 
     if let Some(metadata) = parsed
         .get("package")
@@ -36,6 +38,8 @@ fn main() {
         }
     }
 
-    println!("cargo:warning=\x1b[1;36m=============================================================\x1b[0m");
+    println!(
+        "cargo:warning=\x1b[1;36m=============================================================\x1b[0m"
+    );
     println!("cargo:rerun-if-changed=Cargo.toml");
 }

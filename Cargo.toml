@@ -15,7 +15,8 @@ crossterm = "0.29.0"
 directories = "6.0.0"
 futures-util = "0.3.34"
 ratatui = "0.30.2"
-serde = "1.0.229"
+serde = { version = "1.0.229", features = ["derive"] }
+smart-default = "0.7.1"
 thiserror = "2.0.20"
 tokio =  { version = "1.53.1", features = ["macros", "rt-multi-thread", "sync", "time"] } # full
 toml = "1.1.6"
