@@ -3,6 +3,10 @@ use serde::{Deserialize, Serialize};
 use std::fs::{create_dir_all, read_to_string, write};
 use std::path::PathBuf;
 use tuikk_macros::extend_base_err;
+use arc_swap::ArcSwap;
+use std::sync::{Arc, OnceLock};
+
+use crate::tuikk_core::docker_conn::DockerConfig;
 
 #[extend_base_err]
 pub enum ConfigError {
@@ -24,6 +28,7 @@ pub enum ConfigError {
 pub struct AppConfig {
     pub theme: String,
     pub log_level: String,
+    pub docker: DockerConfig
 }
 
 impl Default for AppConfig {
@@ -31,14 +36,34 @@ impl Default for AppConfig {
         Self {
             theme: "default".to_string(),
             log_level: "error".to_owned(),
+            docker: DockerConfig::default(),
         }
     }
 }
 
 // =========Constants=============
 const CONFIG_FILE_NAME: &str = "config.toml";
+static APP_CONFIG: OnceLock<ArcSwap<AppConfig>> = OnceLock::new();
 
 impl AppConfig {
+    pub fn init_global(config: AppConfig) {
+        let _ = APP_CONFIG.set(ArcSwap::from_pointee(config));
+    }
+
+    pub fn global() -> Arc<AppConfig> {
+        APP_CONFIG
+            .get()
+            .expect("AppConfig has not been initialized. Call init_global() first.")
+            .load_full()
+    }
+
+    pub fn update_global(new_config: AppConfig) -> Result<(), ConfigError> {
+        new_config.save_to_file()?;
+        if let Some(swap) = APP_CONFIG.get() {
+            swap.store(Arc::new(new_config));
+        }
+        Ok(())
+    }
     /// Linux/macOS: ~/.config/tuikk/config.toml
     /// Windows: C:\Users\<User>\AppData\Roaming\tuikk\config.toml
     pub fn config_path() -> Result<PathBuf, ConfigError> {
