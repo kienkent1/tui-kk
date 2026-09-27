@@ -6,7 +6,7 @@ use std::sync::{Arc, OnceLock};
 use tracing::instrument;
 use tuikk_macros::extend_base_err;
 
-use crate::shared::base::ext_log::ResultExt;
+use crate::shared::helpers::ext_log::ResultExt;
 
 #[extend_base_err]
 pub enum DockerConnError {

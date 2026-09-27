@@ -1,0 +1,13 @@
+[dashboard]
+"<q>"      = "quit"
+"<ctrl-c>" = "quit"
+"<tab>"    = "next_page"
+"<backtab>" = "prev_page"
+
+[containers]
+"<j>"      = "down"
+"<k>"      = "up"
+"<enter>"  = "select"
+"<s>"      = "stop"
+"<ctrl-r>" = "restart"
+"<l>"      = "logs"

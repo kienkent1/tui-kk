@@ -10,14 +10,26 @@ app_prefix = "tuikk"
 [dependencies]
 arc-swap = "1.9.2"
 bollard = "0.21.1"
+clap =  { version = "4.6.7", features = [
+    "derive",
+    "cargo",
+    "wrap_help",
+    "unicode",
+    "string",
+    "unstable-styles",
+] }
 color-eyre = "0.6.5"
-crossterm = "0.29.0"
+crossterm =  { version = "0.29.0", features = ["event-stream"] }
 directories = "6.0.0"
+futures = "0.3.34"
 futures-util = "0.3.34"
 ratatui = "0.30.2"
 serde = { version = "1.0.229", features = ["derive"] }
+serde_with = "3.24.0"
+signal-hook = "0.4.4"
 smart-default = "0.7.1"
-thiserror = "2.0.20"
+strum =  { version = "0.28.0", features = ["derive"] }
+thiserror = "2.0.21"
 tokio =  { version = "1.53.1", features = ["macros", "rt-multi-thread", "sync", "time"] } # full
 toml = "1.1.6"
 tracing = "0.1.44"

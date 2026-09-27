@@ -1,12 +1,15 @@
+use arc_swap::ArcSwap;
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
+use smart_default::SmartDefault;
 use std::fs::{create_dir_all, read_to_string, write};
 use std::path::PathBuf;
-use tuikk_macros::extend_base_err;
-use arc_swap::ArcSwap;
 use std::sync::{Arc, OnceLock};
+use tuikk_macros::extend_base_err;
 
 use crate::tuikk_core::docker_conn::DockerConfig;
+use crate::tuikk_core::key_map::KeyMap;
+use crate::tuikk_core::ui_config::UiConfig;
 
 #[extend_base_err]
 pub enum ConfigError {
@@ -23,22 +26,34 @@ pub enum ConfigError {
     Serialize(#[from] toml::ser::Error),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SmartDefault)]
 #[serde(default)]
 pub struct AppConfig {
+    #[default("default".to_owned())]
     pub theme: String,
+    #[default("error".to_owned())]
     pub log_level: String,
-    pub docker: DockerConfig
+    pub docker: DockerConfig,
+    pub ui: UiConfig,
+    #[serde(skip_serializing)]
+    #[default(builtin_keymap())]
+    pub keybindings: KeyMap,
 }
 
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            theme: "default".to_string(),
-            log_level: "error".to_owned(),
-            docker: DockerConfig::default(),
-        }
+const DEFAULT_KEYS: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/.config/keybindings.toml"
+));
+
+fn builtin_keymap() -> KeyMap {
+    toml::from_str(DEFAULT_KEYS).expect(".config/keybindings.toml not valid")
+}
+
+fn merge_keymap(mut base: KeyMap, user: KeyMap) -> KeyMap {
+    for (scope, binds) in user.0 {
+        base.0.entry(scope).or_default().extend(binds);
     }
+    base
 }
 
 // =========Constants=============
@@ -46,6 +61,12 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 static APP_CONFIG: OnceLock<ArcSwap<AppConfig>> = OnceLock::new();
 
 impl AppConfig {
+    fn finalize(mut self) -> Self {
+        self.ui = self.ui.sanitized();
+        self.keybindings = merge_keymap(builtin_keymap(), self.keybindings);
+        self
+    }
+
     pub fn init_global(config: AppConfig) {
         let _ = APP_CONFIG.set(ArcSwap::from_pointee(config));
     }
@@ -84,13 +105,13 @@ impl AppConfig {
         if !path.exists() {
             let default_config = Self::default();
             default_config.save_to_file()?;
-            return Ok(default_config);
+            return Ok(default_config.finalize());
         }
 
         let content = read_to_string(&path)?;
 
         let config: AppConfig = toml::from_str(&content)?;
-        Ok(config)
+        Ok(config.finalize())
     }
 
     pub fn load_or_default() -> Self {
@@ -101,7 +122,7 @@ impl AppConfig {
                     error = %err,
                     "Unable to read configuration file: {err}. Using default config."
                 );
-                Self::default()
+                Self::default().finalize()
             }
         }
     }
