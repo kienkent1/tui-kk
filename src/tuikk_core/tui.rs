@@ -32,6 +32,7 @@ pub struct Tui {
     render: Interval,
     mouse: bool,
     paste: bool,
+    active: bool,
 }
 
 fn make_interval(rate: f64) -> Interval {
@@ -49,6 +50,7 @@ impl Tui {
             render: make_interval(frame_rate),
             mouse: false,
             paste: false,
+            active: true,
         })
     }
 
@@ -64,16 +66,19 @@ impl Tui {
     pub fn enter(&mut self) -> Result<()> {
         let mut out = std::io::stdout();
         if self.mouse {
-            execute!(out, DisableMouseCapture)?;
+            execute!(out, EnableMouseCapture)?;
         }
         if self.paste {
-            execute!(out, DisableBracketedPaste)?;
+            execute!(out, EnableBracketedPaste)?;
         }
-        ratatui::restore();
+        self.active = true;
         Ok(())
     }
 
     pub fn exit(&mut self) -> color_eyre::Result<()> {
+        if !self.active {
+            return Ok(());
+        }
         let mut out = std::io::stdout();
         if self.mouse {
             execute!(out, DisableMouseCapture)?;
@@ -82,6 +87,7 @@ impl Tui {
             execute!(out, DisableBracketedPaste)?;
         }
         ratatui::restore();
+        self.active = false;
         Ok(())
     }
 
@@ -129,6 +135,6 @@ impl DerefMut for Tui {
 
 impl Drop for Tui {
     fn drop(&mut self) {
-        self.exit().unwrap();
+        let _ = self.exit();
     }
 }
