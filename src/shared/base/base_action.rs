@@ -1,14 +1,21 @@
+use crate::tuikk_core::route::Route;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
 #[derive(Debug, Clone, Display, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Action {
     //Only in runtime
-    #[serde(skip)] Tick,
-    #[serde(skip)] Render,
-    #[serde(skip)] Resize(u16, u16),
-    #[serde(skip)] Resume,
-    #[serde(skip)] Error(String),
+    #[serde(skip)]
+    Tick,
+    #[serde(skip)]
+    Render,
+    #[serde(skip)]
+    Resize(u16, u16),
+    #[serde(skip)]
+    Resume,
+    #[serde(skip)]
+    Error(String),
 
     //global: can bind
     Suspend,
@@ -17,6 +24,7 @@ pub enum Action {
     Help,
     NextPage,
     PrevPage,
+    GoTo(Route),
 
     Up,
     Down,
@@ -26,4 +34,16 @@ pub enum Action {
     Stop,
     Restart,
     Logs,
+}
+
+pub enum Msg {
+    Action(Action),
+    Page(PageMsg),
+}
+
+impl From<Action> for Msg {
+    #[inline]
+    fn from(a: Action) -> Self {
+        Self::Action(a)
+    }
 }

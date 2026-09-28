@@ -5,7 +5,7 @@ use ratatui::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::shared::base::base_action::Action;
+use crate::{shared::base::base_action::Action, tuikk_core::routers::Router};
 
 pub type Tx = UnboundedSender<Action>;
 
