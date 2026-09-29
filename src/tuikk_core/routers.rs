@@ -1,6 +1,13 @@
 use std::collections::HashMap;
 
-use crate::{shared::base::{base_action::Action, base_component::{PageBox, Tx}}, tuikk_core::route::Route};
+use crate::{
+    modules::containers::ContainerPage,
+    shared::base::{
+        base_action::Action,
+        base_component::{PageBox, Tx},
+    },
+    tuikk_core::route::Route,
+};
 use crossterm::event::KeyEvent;
 use ratatui::{layout::Rect, Frame};
 use strum::EnumCount;
@@ -17,7 +24,7 @@ impl Router {
     pub fn new() -> Self {
         let mut pages: HashMap<Route, PageBox> = HashMap::new();
 
-        //pages.insert(Route::Dashboard,  Box::new(DashboardPage::new()));
+        pages.insert(Route::Containers, Box::new(ContainerPage::new()));
 
         Self {
             current: Route::default(),
@@ -25,17 +32,21 @@ impl Router {
         }
     }
 
-    fn active(&mut self) -> &mut PageBox{
+    fn active(&mut self) -> &mut PageBox {
         //use expect to check runtime
-        self.pages.get_mut(&self.current).expect("active route must have a page")
+        self.pages
+            .get_mut(&self.current)
+            .expect("active route must have a page")
     }
 
     pub fn activate_current(&mut self, tx: &Tx) {
         self.active().on_activate(tx);
     }
 
-    pub fn navigate(&mut self, route: Route, tx: &Tx){
-        if route == self.current {return;}
+    pub fn navigate(&mut self, route: Route, tx: &Tx) {
+        if route == self.current {
+            return;
+        }
         self.active().on_deactivate();
         self.current = route;
         self.active().on_activate(tx);
