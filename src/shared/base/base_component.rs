@@ -144,3 +144,35 @@ pub trait Component {
     /// * [`color_eyre::Result<()>`] - An Ok result or an error.
     fn draw(&mut self, frame: &mut Frame, area: Rect);
 }
+
+pub trait Page {
+    fn scope(&self) -> &'static str;
+    fn on_activate(&mut self, tx: &Tx);
+    fn on_deactivate(&mut self);
+    fn tick(&mut self) -> bool;
+    fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action>;
+    fn handle_mouse_event(&mut self, mouse: MouseEvent) -> Option<Action>;
+    fn update(&mut self, action: Action) -> bool;
+    fn draw(&mut self, frame: &mut Frame, area: Rect);
+    fn handle_action(&mut self, action: Action) -> bool {
+        let _ = action;
+        false
+    }
+}
+
+impl<C: Component> Page for C {
+    fn scope(&self) -> &'static str { self.scope() }
+    fn on_activate(&mut self, tx: &Tx) { self.on_activate(tx) }
+    fn on_deactivate(&mut self) { self.on_deactivate() }
+    fn tick(&mut self) -> bool { self.tick() }
+    fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
+        self.handle_key_event(key)
+    }
+    fn handle_mouse_event(&mut self, mouse: MouseEvent) -> Option<Action> {
+        self.handle_mouse_event(mouse)
+    }
+    fn update(&mut self, action: Action) -> bool { self.update(action) }
+    fn draw(&mut self, frame: &mut Frame, area: Rect) { self.draw(frame, area) }
+}
+
+pub type PageBox = Box<dyn Page>;
