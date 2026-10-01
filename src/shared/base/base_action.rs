@@ -24,7 +24,7 @@ pub enum Action {
     Help,
     NextPage,
     PrevPage,
-    GoTo(Route),
+    Navigate(Route),
 
     Up,
     Down,
@@ -36,14 +36,3 @@ pub enum Action {
     Logs,
 }
 
-pub enum Msg {
-    Action(Action),
-    Page(PageMsg),
-}
-
-impl From<Action> for Msg {
-    #[inline]
-    fn from(a: Action) -> Self {
-        Self::Action(a)
-    }
-}

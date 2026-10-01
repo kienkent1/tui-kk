@@ -42,8 +42,8 @@ fn make_interval(rate: f64) -> Interval {
 }
 
 impl Tui {
-    pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
-        Ok(Self {
+    pub fn new(tick_rate: f64, frame_rate: f64) -> Self {
+        Self {
             terminal: ratatui::init(),
             events: EventStream::new(),
             tick: make_interval(tick_rate),
@@ -51,7 +51,7 @@ impl Tui {
             mouse: false,
             paste: false,
             active: true,
-        })
+        }
     }
 
     pub fn mouse(mut self, on: bool) -> Self {

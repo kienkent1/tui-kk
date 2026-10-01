@@ -42,4 +42,43 @@ pub enum BaseErr {
 
     #[error("Serialization error: {0}")]
     Serialization(String),
+
+    #[error("{resource_type} '{id}' not found")]
+    NotFound { resource_type: &'static str, id: String },
+
+    #[error("{resource_type} '{id}' already exists")]
+    AlreadyExists { resource_type: &'static str, id: String },
+
+    #[error("{resource_type} '{id}' is no longer available")]
+    Gone { resource_type: &'static str, id: String },
+
+    // ==========================================
+    // Validation Errors  (~ HTTP 400 / 422)
+    // ==========================================
+    #[error("Bad request: {message}")]
+    BadRequest { message: String },
+
+    #[error("Validation failed for '{field}': {reason}")]
+    UnprocessableEntity { field: &'static str, reason: String },
+
+    #[error("Validation failed: {count} error(s)", count = errors.len())]
+    ValidationErrors { errors: Vec<FieldError> },
+
+    #[error("Operation '{operation}' not allowed: {reason}")]
+    InvalidState { operation: &'static str, reason: String },
+
+    #[error("Service unavailable: {service}")]
+    ServiceUnavailable { service: &'static str },
+}
+
+#[derive(Debug)]
+pub struct FieldError {
+    pub field: &'static str,
+    pub reason: String,
+}
+
+impl std::fmt::Display for FieldError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.field, self.reason)
+    }
 }

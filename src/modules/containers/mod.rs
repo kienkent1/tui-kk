@@ -1,6 +1,9 @@
 mod detail_page;
 mod list_page;
-use crossterm::event::KeyEvent;
+mod container_service;
+mod container_dto;
+mod error;
+use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::{layout::Rect, Frame};
 
 use crate::{
@@ -11,7 +14,6 @@ use crate::{
     },
 };
 
-mod container_service;
 
 enum ContainerRoute {
     List,
@@ -69,6 +71,9 @@ impl Page for ContainerPage {
 
     fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         self.active().handle_key_event(key)
+    }
+    fn handle_mouse_event(&mut self, mouse: MouseEvent) -> Option<Action> {
+        self.handle_mouse_event(mouse)
     }
 
     fn update(&mut self, action: Action) -> bool {

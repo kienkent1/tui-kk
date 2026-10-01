@@ -1,10 +1,15 @@
+use crate::shared::base::base_action::Action;
 use crate::tuikk_core::docker_conn::DockerConnection;
+use crate::tuikk_core::route::Route;
+use crate::tuikk_core::routers::Router;
+use crate::tuikk_core::tui::{Event, Tui};
 use color_eyre::Result;
-use crossterm::event::KeyEvent;
-use crossterm::event::{Event, EventStream, KeyCode};
+use crossterm::event::{KeyEvent, KeyModifiers};
+use crossterm::event::{ EventStream, KeyCode};
 use futures_util::StreamExt;
 use ratatui::{DefaultTerminal, Frame};
 use serde::Deserialize;
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use std::collections::HashMap;
 use std::time::Duration;
 use tokio::time::interval;
@@ -24,41 +29,91 @@ pub enum Command {
     Restart,
     Logs,
 }
-pub struct App;
+pub struct App {
+    router: Router,
+    tx: UnboundedSender<Action>,
+    rx: UnboundedReceiver<Action>,
+    should_quit: bool,
+}
 impl App {
-    pub async fn run(terminal: &mut DefaultTerminal) -> Result<()> {
-        let mut event_stream = EventStream::new();
+    pub fn new() -> Self {
+        let (tx, rx) = unbounded_channel();
+        Self { router:Router::new(), tx, rx, should_quit: false }
+    }
 
-        let mut tick_timer = interval(Duration::from_secs(2));
+    pub async fn run(&mut self, tui: &mut Tui) -> Result<()> {
+        tui.enter()?;
+        self.router.activate_current(&self.tx);
 
-        let docker = DockerConnection::global()?;
+        while !self.should_quit {
+            // Drain action channel first (none block)
+            while let Ok(action) = self.rx.try_recv() {
+                self.handle_action(action);
+            }
 
-        let mut container_count = 0;
-        loop {
-            terminal.draw(|f| render(f, container_count))?;
+            match tui.next_event().await {
+                Some(Event::Render) => {
+                    tui.draw(|f| self.router.draw(f, f.area()))?;
+                }
+                Some(Event::Tick) => {
+                    self.router.tick();
+                }
+                Some(Event::Key(key)) => {
+                    // Ctrl+C — global quit
+                    if key.modifiers.contains(KeyModifiers::CONTROL)
+                        && key.code == KeyCode::Char('c')
+                    {
+                        self.should_quit = true;
+                        continue;
+                    }
 
-            tokio::select! {
-                maybe_event = event_stream.next() => {
-                    if let Some(Ok(Event::Key(key))) = maybe_event {
-                        if key.code == KeyCode::Char('q') || key.code == KeyCode::Esc {
-                            break;
+                    // Tab / BackTab — top-level navigation
+                    match key.code {
+                        KeyCode::Tab => {
+                            self.router.navigate(self.next_route(), &self.tx);
+                        }
+                        KeyCode::BackTab => {
+                            self.router.navigate(self.prev_route(), &self.tx);
+                        }
+                        _ => {
+                            if let Some(action) = self.router.handle_key(key) {
+                                let _ = self.tx.send(action);
+                            }
                         }
                     }
                 }
-
-                _ = tick_timer.tick() => {
-                    if let Ok(containers) = docker.list_containers(None).await {
-                        container_count = containers.len();
-                    }
+                Some(Event::Resize(w, h)) => {
+                    tui.draw(|f| self.router.draw(f, f.area()))?;
                 }
+                Some(Event::Error(e)) => {
+                    tracing::error!(e)
+                }
+                _ => {}
             }
         }
 
+        tui.exit()?;
         Ok(())
     }
 
-    fn render(frame: &mut Frame, container_count: usize) {
-        let text = format!("TUI-KK | Running Containers: {container_count} (Press 'q' to quit)");
-        frame.render_widget(text, frame.area());
+    fn handle_action(&mut self, action: Action) {
+        match action {
+            Action::Quit => self.should_quit = true,
+            Action::Navigate(route) => self.router.navigate(route, &self.tx),
+            other => { self.router.dispatch(other); }
+        }
+    }
+
+    fn next_route(&self) -> Route {
+        use strum::EnumCount;
+        let idx = (self.router.current_route() as usize + 1) % Route::COUNT;
+        Route::from_repr(idx).unwrap_or_default()
+    }
+
+    fn prev_route(&self) -> Route {
+        use strum::EnumCount;
+        let idx = self.router.current_route() as usize;
+        let prev = if idx == 0 { Route::COUNT - 1 } else { idx - 1 };
+        Route::from_repr(prev).unwrap_or_default()
     }
 }
