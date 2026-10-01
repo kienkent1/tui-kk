@@ -1,4 +1,5 @@
 pub mod app;
+pub mod app_services;
 pub mod cli;
 pub mod config;
 pub mod docker_conn;

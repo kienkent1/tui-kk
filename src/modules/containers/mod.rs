@@ -1,8 +1,8 @@
-mod detail_page;
-mod list_page;
-mod container_service;
 mod container_dto;
+pub mod container_service;
+mod detail_page;
 mod error;
+mod list_page;
 use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::{layout::Rect, Frame};
 
@@ -13,7 +13,6 @@ use crate::{
         base_component::{Page, Tx},
     },
 };
-
 
 enum ContainerRoute {
     List,
