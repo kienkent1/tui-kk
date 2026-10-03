@@ -9,7 +9,7 @@ use crate::{
     tuikk_core::route::Route,
 };
 use crossterm::event::KeyEvent;
-use ratatui::{layout::Rect, Frame};
+use ratatui::{Frame, layout::Rect};
 use strum::EnumCount;
 
 pub enum PageMsg {}

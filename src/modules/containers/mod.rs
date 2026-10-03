@@ -1,11 +1,11 @@
+mod constants;
 mod container_dto;
 pub mod container_service;
 mod detail_page;
 mod error;
 mod list_page;
-mod constants;
 use crossterm::event::{KeyEvent, MouseEvent};
-use ratatui::{layout::Rect, Frame};
+use ratatui::{Frame, layout::Rect};
 
 use crate::{
     modules::containers::{detail_page::ContainerDetailPage, list_page::ContainerListPage},

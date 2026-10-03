@@ -1,3 +1,1 @@
-pub struct ContainerDto{
-    
-}
+pub struct ContainerDto {}

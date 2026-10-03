@@ -1,5 +1,5 @@
 use arc_swap::ArcSwap;
-use bollard::{self, ClientVersion, Docker, API_DEFAULT_VERSION};
+use bollard::{self, API_DEFAULT_VERSION, ClientVersion, Docker};
 use serde::{Deserialize, Serialize};
 use smart_default::SmartDefault;
 use std::sync::{Arc, OnceLock};

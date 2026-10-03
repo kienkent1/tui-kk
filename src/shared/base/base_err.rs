@@ -1,6 +1,6 @@
+use bollard::errors::Error as DockerErr;
 use std::path::PathBuf;
 use thiserror::Error;
-use bollard::errors::Error as DockerErr;
 #[derive(Error, Debug)]
 pub enum BaseErr {
     // ==========================================
@@ -44,13 +44,22 @@ pub enum BaseErr {
     Serialization(String),
 
     #[error("{resource_type} '{id}' not found")]
-    NotFound { resource_type: &'static str, id: String },
+    NotFound {
+        resource_type: &'static str,
+        id: String,
+    },
 
     #[error("{resource_type} '{id}' already exists")]
-    AlreadyExists { resource_type: &'static str, id: String },
+    AlreadyExists {
+        resource_type: &'static str,
+        id: String,
+    },
 
     #[error("{resource_type} '{id}' is no longer available")]
-    Gone { resource_type: &'static str, id: String },
+    Gone {
+        resource_type: &'static str,
+        id: String,
+    },
 
     // ==========================================
     // Validation Errors  (~ HTTP 400 / 422)
@@ -65,7 +74,10 @@ pub enum BaseErr {
     ValidationErrors { errors: Vec<FieldError> },
 
     #[error("Operation '{operation}' not allowed: {reason}")]
-    InvalidState { operation: &'static str, reason: String },
+    InvalidState {
+        operation: &'static str,
+        reason: String,
+    },
 
     #[error("Service unavailable: {service}")]
     ServiceUnavailable { service: &'static str },

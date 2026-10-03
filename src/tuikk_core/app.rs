@@ -4,14 +4,14 @@ use crate::tuikk_core::route::Route;
 use crate::tuikk_core::routers::Router;
 use crate::tuikk_core::tui::{Event, Tui};
 use color_eyre::Result;
+use crossterm::event::{EventStream, KeyCode};
 use crossterm::event::{KeyEvent, KeyModifiers};
-use crossterm::event::{ EventStream, KeyCode};
 use futures_util::StreamExt;
 use ratatui::{DefaultTerminal, Frame};
 use serde::Deserialize;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use std::collections::HashMap;
 use std::time::Duration;
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::time::interval;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -38,7 +38,12 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         let (tx, rx) = unbounded_channel();
-        Self { router:Router::new(), tx, rx, should_quit: false }
+        Self {
+            router: Router::new(),
+            tx,
+            rx,
+            should_quit: false,
+        }
     }
 
     pub async fn run(&mut self, tui: &mut Tui) -> Result<()> {
@@ -100,7 +105,9 @@ impl App {
         match action {
             Action::Quit => self.should_quit = true,
             Action::Navigate(route) => self.router.navigate(route, &self.tx),
-            other => { self.router.dispatch(other); }
+            other => {
+                self.router.dispatch(other);
+            }
         }
     }
 

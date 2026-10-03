@@ -1,7 +1,7 @@
 use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::{
-    layout::{Rect, Size},
     Frame,
+    layout::{Rect, Size},
 };
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -161,18 +161,30 @@ pub trait Page {
 }
 
 impl<C: Component> Page for C {
-    fn scope(&self) -> &'static str { self.scope() }
-    fn on_activate(&mut self, tx: &Tx) { self.on_activate(tx) }
-    fn on_deactivate(&mut self) { self.on_deactivate() }
-    fn tick(&mut self) -> bool { self.tick() }
+    fn scope(&self) -> &'static str {
+        self.scope()
+    }
+    fn on_activate(&mut self, tx: &Tx) {
+        self.on_activate(tx)
+    }
+    fn on_deactivate(&mut self) {
+        self.on_deactivate()
+    }
+    fn tick(&mut self) -> bool {
+        self.tick()
+    }
     fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         self.handle_key_event(key)
     }
     fn handle_mouse_event(&mut self, mouse: MouseEvent) -> Option<Action> {
         self.handle_mouse_event(mouse)
     }
-    fn update(&mut self, action: Action) -> bool { self.update(action) }
-    fn draw(&mut self, frame: &mut Frame, area: Rect) { self.draw(frame, area) }
+    fn update(&mut self, action: Action) -> bool {
+        self.update(action)
+    }
+    fn draw(&mut self, frame: &mut Frame, area: Rect) {
+        self.draw(frame, area)
+    }
 }
 
 pub type PageBox = Box<dyn Page>;

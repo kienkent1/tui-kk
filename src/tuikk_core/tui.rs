@@ -13,7 +13,7 @@ use crossterm::{
 };
 use futures::StreamExt;
 use ratatui::DefaultTerminal;
-use tokio::time::{interval, Interval, MissedTickBehavior};
+use tokio::time::{Interval, MissedTickBehavior, interval};
 #[derive(Debug, Clone)]
 pub enum Event {
     Tick,
