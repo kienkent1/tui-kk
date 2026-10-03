@@ -3,6 +3,7 @@ pub mod container_service;
 mod detail_page;
 mod error;
 mod list_page;
+mod constants;
 use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::{layout::Rect, Frame};
 
@@ -16,13 +17,12 @@ use crate::{
 
 enum ContainerRoute {
     List,
-    Detail(String),
+    Detail(ContainerDetailPage),
 }
 
 pub struct ContainerPage {
     route: ContainerRoute,
     list: ContainerListPage,
-    detail: ContainerDetailPage,
     tx: Option<Tx>,
 }
 
@@ -31,15 +31,14 @@ impl ContainerPage {
         Self {
             route: ContainerRoute::List,
             list: ContainerListPage::new(),
-            detail: ContainerDetailPage::new(),
             tx: None,
         }
     }
 
     fn active(&mut self) -> &mut dyn Page {
-        match &self.route {
+        match &mut self.route {
             ContainerRoute::List => &mut self.list,
-            ContainerRoute::Detail(_) => &mut self.detail,
+            ContainerRoute::Detail(page) => page,
         }
     }
 

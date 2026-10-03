@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use thiserror::Error;
-
+use bollard::errors::Error as DockerErr;
 #[derive(Error, Debug)]
 pub enum BaseErr {
     // ==========================================
@@ -69,6 +69,9 @@ pub enum BaseErr {
 
     #[error("Service unavailable: {service}")]
     ServiceUnavailable { service: &'static str },
+
+    #[error(transparent)]
+    Docker(#[from] DockerErr),
 }
 
 #[derive(Debug)]
