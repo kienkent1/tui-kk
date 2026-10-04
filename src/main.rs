@@ -1,5 +1,6 @@
 mod modules;
 mod shared;
+#[cfg(test)]
 mod tests;
 mod tuikk_core;
 use crate::tuikk_core::{

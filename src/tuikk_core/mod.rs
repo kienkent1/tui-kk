@@ -1,11 +1,13 @@
 pub mod app;
 pub mod app_services;
 pub mod cli;
+pub mod click_tracker;
 pub mod config;
 pub mod docker_conn;
 pub mod key_map;
 pub mod logging;
 pub mod route;
 pub mod routers;
+pub mod themes;
 pub mod tui;
 pub mod ui_config;

@@ -7,13 +7,16 @@ use crate::{
         base_component::{Page, Tx},
         base_filter::BaseFilter,
     },
-    tuikk_core::key_map::{Command, KeyScope},
+    tuikk_core::{
+        click_tracker::{ClickTracker, Clicks},
+        key_map::{Command, KeyScope},
+    },
 };
 use bollard::plugin::ContainerSummary;
-use crossterm::event::{KeyCode, KeyEvent, MouseEvent};
+use crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::{
     Frame,
-    layout::{Constraint, Layout, Rect, Rows},
+    layout::{Constraint, Layout, Position, Rect},
     style::{Color, Modifier, Style},
     widgets::{Block, Cell, Paragraph, Row, Table, TableState},
 };
@@ -24,11 +27,15 @@ pub struct ContainerListPage {
 
     items: Vec<ContainerSummary>,
     filter: BaseFilter,
+    clicks: ClickTracker,
 
     // search
     input_mode: bool,
     draft: String,
     prev_search: Option<String>,
+    search_area: Rect,
+    list_area: Rect,
+    table_state: TableState,
 
     // async
     loading: bool,
@@ -50,9 +57,13 @@ impl ContainerListPage {
             is_local,
             items: Vec::new(),
             filter: BaseFilter::default(),
+            clicks: ClickTracker::default(),
             input_mode: false,
             draft: String::new(),
             prev_search: None,
+            search_area: Rect::default(),
+            list_area: Rect::default(),
+            table_state: TableState::default(),
             loading: false,
             error: None,
             req_seq: 0,
@@ -229,6 +240,21 @@ impl Page for ContainerListPage {
         None
     }
 
+    fn handle_paste(&mut self, text: &str) -> Option<Action> {
+        if !self.input_mode {
+            return None;
+        }
+
+        self.draft.extend(text.chars().filter(|c| !c.is_control()));
+
+        if self.is_local {
+            let q = self.draft.clone();
+            self.set_search(&q);
+            self.on_filter_change();
+        }
+        None
+    }
+
     /// Only called in input mode (or when the key is unassigned).
     fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         if !self.input_mode {
@@ -273,6 +299,72 @@ impl Page for ContainerListPage {
         None
     }
     fn handle_mouse_event(&mut self, mouse: MouseEvent) -> Option<Action> {
+        let pos = Position::new(mouse.column, mouse.row);
+        match mouse.kind {
+            MouseEventKind::Down(MouseButton::Left) => {
+                // Click on the search box.
+                if self.search_area.contains(pos) {
+                    if !self.input_mode {
+                        return self.handle_command(Command::Search);
+                    }
+                    return None; // typing now, not resetting draft
+                }
+
+                // Click on the table
+                if self.list_area.contains(pos) {
+                    let click = self.clicks.listen(mouse.column, mouse.row);
+                    if click == Clicks::Nothing {
+                        return None;
+                    }
+                    // When clicking outside the table while entering data -> quit input mode
+                    if self.input_mode {
+                        self.input_mode = false;
+                        if !self.is_local {
+                            let q = self.draft.clone();
+                            self.set_search(&q);
+                            self.on_filter_change();
+                            return None;
+                        }
+                    }
+
+                    // 1 top border + 1 header = first data row
+                    let first_row_y = self.list_area.y + 2;
+                    if pos.y < first_row_y {
+                        return None; // click on the borrder/header
+                    }
+
+                    let row_in_view = (pos.y - first_row_y) as usize;
+                    if row_in_view >= self.viewport {
+                        return None; // click on the bottom border
+                    }
+
+                    let idx = self.offset + row_in_view;
+                    if idx >= self.rows().len() {
+                        return None; // click on the empty space
+                    }
+
+                    self.cursor = idx;
+                    self.selected_id = self.row_id(idx);
+                    if click == Clicks::DoubleClick {
+                        self.clicks.reset();
+                        return self.handle_command(Command::Select);
+                    }
+                }
+
+                return None;
+            }
+
+            MouseEventKind::ScrollDown if self.list_area.contains(pos) => {
+                self.move_cursor(1);
+                return None;
+            }
+            MouseEventKind::ScrollUp if self.list_area.contains(pos) => {
+                self.move_cursor(-1);
+                return None;
+            }
+            _ => {}
+        }
+
         None
     }
     fn update(&mut self, action: &Action) -> bool {
@@ -299,10 +391,12 @@ impl Page for ContainerListPage {
         let [search_area, table_area] =
             Layout::vertical([Constraint::Length(3), Constraint::Min(3)]).areas(area);
 
+        self.search_area = search_area;
+        self.list_area = table_area;
         // ── search box ──
 
         let (text, border) = if self.input_mode {
-            (format!("{}|", self.draft), Style::new().fg(Color::Yellow))
+            (self.draft.clone(), Style::new().fg(Color::Yellow))
         } else {
             (
                 self.filter.search.clone().unwrap_or_default(),
@@ -311,17 +405,22 @@ impl Page for ContainerListPage {
         };
 
         let mode = if self.is_local { "local" } else { "remote" };
-        frame.render_widget(
-            Paragraph::new(text).block(
-                Block::bordered()
-                    .title(format!(" Search (/) · {mode} "))
-                    .border_style(border),
-            ),
-            search_area,
-        );
+
+        let block = Block::bordered()
+            .title(format!(" Search (/) · {mode} "))
+            .border_style(border);
+        let inner = block.inner(search_area);
+
+        frame.render_widget(Paragraph::new(text).block(block), search_area);
+
+        if self.input_mode {
+            let w = ratatui::text::Line::from(self.draft.as_str()).width() as u16;
+            let x = (inner.x + w).min(inner.right().saturating_sub(1));
+            frame.set_cursor_position((x, inner.y));
+        }
 
         // ── table ──
-        self.viewport = table_area.height.saturating_sub(3) as usize; // 2 viền + 1 header
+        self.viewport = table_area.height.saturating_sub(3) as usize; // 2 border + 1 header
         let len = self.rows().len();
         self.clamp(len);
 

@@ -118,6 +118,10 @@ pub trait Component {
         None
     }
 
+    fn handle_paste(&mut self, _text: &str) -> Option<Action> {
+        None
+    }
+
     fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         let _ = key; // to appease clippy
         None
@@ -170,6 +174,9 @@ pub trait Page {
         let _ = cmd;
         None
     }
+    fn handle_paste(&mut self, _text: &str) -> Option<Action> {
+        None
+    }
     fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         let _ = key;
         None
@@ -203,6 +210,9 @@ impl<C: Component> Page for C {
     }
     fn handle_command(&mut self, cmd: Command) -> Option<Action> {
         Component::handle_command(self, cmd)
+    }
+    fn handle_paste(&mut self, _text: &str) -> Option<Action> {
+        None
     }
     fn handle_key_event(&mut self, k: KeyEvent) -> Option<Action> {
         Component::handle_key_event(self, k)

@@ -98,6 +98,9 @@ impl Page for ContainerPage {
 
         self.active().handle_command(cmd)
     }
+    fn handle_paste(&mut self, text: &str) -> Option<Action> {
+        self.active().handle_paste(text)
+    }
     fn handle_key_event(&mut self, k: KeyEvent) -> Option<Action> {
         self.active().handle_key_event(k)
     }

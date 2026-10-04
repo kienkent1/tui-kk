@@ -2,6 +2,7 @@ use arc_swap::ArcSwap;
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use smart_default::SmartDefault;
+use std::collections::HashMap;
 use std::fs::{create_dir_all, read_to_string, write};
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
@@ -9,6 +10,7 @@ use tuikk_macros::extend_base_err;
 
 use crate::tuikk_core::docker_conn::DockerConfig;
 use crate::tuikk_core::key_map::KeyMap;
+use crate::tuikk_core::themes::Themes;
 use crate::tuikk_core::ui_config::UiConfig;
 
 #[extend_base_err]
@@ -37,26 +39,31 @@ pub enum QueryMode {
 #[derive(Debug, Clone, Serialize, Deserialize, SmartDefault)]
 #[serde(default)]
 pub struct AppConfig {
-    #[default("default".to_owned())]
+    // Theme & style
+    #[default("dark".to_owned())]
     pub theme: String,
+    #[serde(skip_serializing)]
+    pub themes: HashMap<String, Themes>,
+    pub ui: UiConfig,
+
+    // Logging
     #[default("error".to_owned())]
     pub log_level: String,
     pub log_dir: Option<String>,
+
     pub docker: DockerConfig,
-    pub ui: UiConfig,
+
     #[serde(skip_serializing)]
     #[default(builtin_keymap())]
     pub keybindings: KeyMap,
     pub query_mode: QueryMode,
 }
 
-const DEFAULT_KEYS: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/.config/keybindings.toml"
-));
+const KEY_FILE_NAME: &str = "keybindings.toml";
 
 fn builtin_keymap() -> KeyMap {
-    toml::from_str(DEFAULT_KEYS).expect(".config/keybindings.toml not valid")
+    toml::from_str(AppConfig::get_path(KEY_FILE_NAME).unwrap())
+        .expect(".config/keybindings.toml not valid")
 }
 
 fn merge_keymap(mut base: KeyMap, user: KeyMap) -> KeyMap {
@@ -98,8 +105,12 @@ impl AppConfig {
     /// Linux/macOS: ~/.config/tuikk/config.toml
     /// Windows: C:\Users\<User>\AppData\Roaming\tuikk\config.toml
     pub fn config_path() -> Result<PathBuf, ConfigError> {
+        AppConfig::get_path(CONFIG_FILE_NAME)
+    }
+
+    pub fn get_path(file_name: &str) -> Result<PathBuf, ConfigError> {
         let local_dir = PathBuf::from(".config");
-        let local_file = local_dir.join(CONFIG_FILE_NAME);
+        let local_file = local_dir.join(file_name);
 
         if local_file.exists() {
             return Ok(local_file);
@@ -118,7 +129,7 @@ impl AppConfig {
             create_dir_all(config_dir)?;
         }
 
-        Ok(config_dir.join(CONFIG_FILE_NAME))
+        Ok(config_dir.join(file_name))
     }
 
     pub fn load_from_file() -> Result<Self, ConfigError> {

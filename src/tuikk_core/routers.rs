@@ -12,7 +12,7 @@ use crate::{
         route::Route,
     },
 };
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::{Frame, layout::Rect};
 use strum::EnumCount;
 
@@ -68,6 +68,14 @@ impl Router {
 
     pub fn handle_key(&mut self, key: KeyEvent) -> Option<Action> {
         self.current_page_mut().handle_key_event(key)
+    }
+
+    pub fn handle_mouse(&mut self, mouse: MouseEvent) -> Option<Action> {
+        self.current_page_mut().handle_mouse_event(mouse)
+    }
+
+    pub fn handle_paste(&mut self, s: &str) -> Option<Action> {
+        self.current_page_mut().handle_paste(s)
     }
 
     // ---------- lifecycle ----------

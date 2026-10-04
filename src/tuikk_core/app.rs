@@ -69,6 +69,16 @@ impl App {
                 Some(Event::Error(e)) => {
                     tracing::error!(e)
                 }
+                Some(Event::Mouse(m)) => {
+                    if let Some(action) = self.router.handle_mouse(m) {
+                        self.tx.send(action)?;
+                    }
+                }
+                Some(Event::Paste(s)) => {
+                    if let Some(action) = self.router.handle_paste(&s) {
+                        self.tx.send(action)?;
+                    }
+                }
                 _ => {}
             }
         }
