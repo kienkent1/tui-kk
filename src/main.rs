@@ -20,7 +20,7 @@ async fn main() -> Result<()> {
     app_config.ui.frame_rate = args.frame_rate.unwrap_or(app_config.ui.frame_rate);
     app_config.ui.tick_rate = args.tick_rate.unwrap_or(app_config.ui.tick_rate);
 
-    let _log_guard = tuikk_core::logging::init_logging(&app_config.log_level)?;
+    let _log_guard = tuikk_core::logging::init_logging(&app_config.log_level, &app_config.log_dir)?;
 
     let tick_rate = app_config.ui.tick_rate;
     let frame_rate = app_config.ui.frame_rate;

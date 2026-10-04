@@ -26,6 +26,14 @@ pub enum ConfigError {
     Serialize(#[from] toml::ser::Error),
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum QueryMode {
+    #[default]
+    Local,
+    Remote,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, SmartDefault)]
 #[serde(default)]
 pub struct AppConfig {
@@ -33,11 +41,13 @@ pub struct AppConfig {
     pub theme: String,
     #[default("error".to_owned())]
     pub log_level: String,
+    pub log_dir: Option<String>,
     pub docker: DockerConfig,
     pub ui: UiConfig,
     #[serde(skip_serializing)]
     #[default(builtin_keymap())]
     pub keybindings: KeyMap,
+    pub query_mode: QueryMode,
 }
 
 const DEFAULT_KEYS: &str = include_str!(concat!(
@@ -88,6 +98,17 @@ impl AppConfig {
     /// Linux/macOS: ~/.config/tuikk/config.toml
     /// Windows: C:\Users\<User>\AppData\Roaming\tuikk\config.toml
     pub fn config_path() -> Result<PathBuf, ConfigError> {
+        let local_dir = PathBuf::from(".config");
+        let local_file = local_dir.join(CONFIG_FILE_NAME);
+
+        if local_file.exists() {
+            return Ok(local_file);
+        }
+
+        if local_dir.is_dir() {
+            return Ok(local_file);
+        }
+
         let proj_dirs =
             ProjectDirs::from("", "", env!("APP_PREFIX")).ok_or(ConfigError::NoConfigDir)?;
 

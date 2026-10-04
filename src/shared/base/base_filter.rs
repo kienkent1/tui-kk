@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use smart_default::SmartDefault;
 
-#[derive(Debug, Serialize, Deserialize, SmartDefault)]
+#[derive(Debug, Clone, Serialize, Deserialize, SmartDefault)]
 #[serde(default)]
 pub struct BaseFilter {
     pub limit: Option<i32>,

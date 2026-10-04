@@ -5,7 +5,13 @@ use ratatui::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::{shared::base::base_action::Action, tuikk_core::routers::Router};
+use crate::{
+    shared::base::base_action::Action,
+    tuikk_core::{
+        key_map::{Command, KeyScope},
+        routers::Router,
+    },
+};
 
 pub type Tx = UnboundedSender<Action>;
 
@@ -88,12 +94,10 @@ pub trait Component {
 
     //============Custom func============
     ///Check keybinding, exp: "containers"
-    fn scope(&self) -> &'static str;
+    fn scope(&self) -> KeyScope;
 
     /// Open component/page: load data, open stream.
-    fn on_activate(&mut self, tx: &Tx) {
-        let _ = tx;
-    }
+    fn on_activate(&mut self);
 
     /// Leave page: cancel stream, export large volumes of data.
     fn on_deactivate(&mut self) {}
@@ -104,6 +108,15 @@ pub trait Component {
     }
 
     //===================================
+
+    fn captures_input(&self) -> bool {
+        false
+    }
+
+    fn handle_command(&mut self, cmd: Command) -> Option<Action> {
+        let _ = cmd;
+        None
+    }
 
     fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         let _ = key; // to appease clippy
@@ -131,7 +144,7 @@ pub trait Component {
     /// # Returns
     ///
     /// * [`color_eyre::Result<Option<Action>>`] - An action to be processed or none.
-    fn update(&mut self, action: Action) -> bool;
+    fn update(&mut self, action: &Action) -> bool;
     /// Render the component on the screen. (REQUIRED)
     ///
     /// # Arguments
@@ -146,44 +159,62 @@ pub trait Component {
 }
 
 pub trait Page {
-    fn scope(&self) -> &'static str;
-    fn on_activate(&mut self, tx: &Tx);
-    fn on_deactivate(&mut self);
-    fn tick(&mut self) -> bool;
-    fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action>;
-    fn handle_mouse_event(&mut self, mouse: MouseEvent) -> Option<Action>;
-    fn update(&mut self, action: Action) -> bool;
-    fn draw(&mut self, frame: &mut Frame, area: Rect);
-    fn handle_action(&mut self, action: Action) -> bool {
+    fn scope(&self) -> KeyScope;
+    fn on_activate(&mut self) {}
+    fn on_deactivate(&mut self) {}
+    fn tick(&mut self) -> bool {
+        false
+    }
+    fn captures_input(&self) -> bool;
+    fn handle_command(&mut self, cmd: Command) -> Option<Action> {
+        let _ = cmd;
+        None
+    }
+    fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
+        let _ = key;
+        None
+    }
+    fn handle_mouse_event(&mut self, mouse: MouseEvent) -> Option<Action> {
+        let _ = mouse;
+        None
+    }
+    fn update(&mut self, action: &Action) -> bool {
         let _ = action;
         false
     }
+    fn draw(&mut self, frame: &mut Frame, area: Rect);
 }
 
 impl<C: Component> Page for C {
-    fn scope(&self) -> &'static str {
-        self.scope()
+    fn scope(&self) -> KeyScope {
+        Component::scope(self)
     }
-    fn on_activate(&mut self, tx: &Tx) {
-        self.on_activate(tx)
+    fn on_activate(&mut self) {
+        Component::on_activate(self)
     }
     fn on_deactivate(&mut self) {
-        self.on_deactivate()
+        Component::on_deactivate(self)
     }
     fn tick(&mut self) -> bool {
-        self.tick()
+        Component::tick(self)
     }
-    fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
-        self.handle_key_event(key)
+    fn captures_input(&self) -> bool {
+        Component::captures_input(self)
     }
-    fn handle_mouse_event(&mut self, mouse: MouseEvent) -> Option<Action> {
-        self.handle_mouse_event(mouse)
+    fn handle_command(&mut self, cmd: Command) -> Option<Action> {
+        Component::handle_command(self, cmd)
     }
-    fn update(&mut self, action: Action) -> bool {
-        self.update(action)
+    fn handle_key_event(&mut self, k: KeyEvent) -> Option<Action> {
+        Component::handle_key_event(self, k)
     }
-    fn draw(&mut self, frame: &mut Frame, area: Rect) {
-        self.draw(frame, area)
+    fn handle_mouse_event(&mut self, m: MouseEvent) -> Option<Action> {
+        Component::handle_mouse_event(self, m)
+    }
+    fn update(&mut self, a: &Action) -> bool {
+        Component::update(self, a)
+    }
+    fn draw(&mut self, f: &mut Frame, r: Rect) {
+        Component::draw(self, f, r)
     }
 }
 

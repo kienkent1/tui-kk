@@ -14,10 +14,8 @@ env.CARGO_TERM_COLOR = "always"
 command = ["cargo", "check", "--color", "always"]
 need_stdout = true
 
-# Tắt tính năng tự động quét mặc định của dự án
 default_watch = false
 
-# CHỈ cho phép theo dõi duy nhất thư mục src và file cấu hình chính
 watch = ["src", "Cargo.toml"]
 
 # Run clippy on the default target
@@ -81,10 +79,7 @@ on_success = "back" # so that we don't open the browser at each change
 # You can run your application and have the result displayed in bacon,
 # if it makes sense for this crate.
 [jobs.run]
-command = [
-    "cargo", "run",
-    # put launch parameters for your program behind a `--` separator
-]
+command = ["cargo", "run", "--color", "always"]
 need_stdout = true
 allow_warnings = true
 background = true

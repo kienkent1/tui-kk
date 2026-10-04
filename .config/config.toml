@@ -1,0 +1,12 @@
+theme = "default"
+log_level = "info"
+query_mode = "warning"
+log_dir = "./logs"
+
+[docker]
+default_conn_type = "socket"
+timeout = 120
+
+[ui]
+frame_rate = 30.0
+tick_rate = 4.0

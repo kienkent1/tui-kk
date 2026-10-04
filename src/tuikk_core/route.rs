@@ -5,8 +5,9 @@ use strum::{EnumCount, FromRepr};
 )]
 #[serde(rename_all = "snake_case")]
 pub enum Route {
-    #[default]
+    //#[default]
     Dashboard,
+    #[default]
     Containers,
     Images,
     Settings,

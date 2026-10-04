@@ -1,4 +1,4 @@
-use crate::tuikk_core::route::Route;
+use crate::{modules::containers::actions::ContainerAction, tuikk_core::route::Route};
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
@@ -34,4 +34,7 @@ pub enum Action {
     Stop,
     Restart,
     Logs,
+
+    //page action
+    Containers(ContainerAction),
 }

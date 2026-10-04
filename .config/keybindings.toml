@@ -1,4 +1,4 @@
-[dashboard]
+[global]
 "<q>"      = "quit"
 "<ctrl-c>" = "quit"
 "<tab>"    = "next_page"
@@ -11,3 +11,4 @@
 "<s>"      = "stop"
 "<ctrl-r>" = "restart"
 "<l>"      = "logs"
+"</>"      = "search"

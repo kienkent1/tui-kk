@@ -2,6 +2,7 @@ use bollard::errors::Error as DockerErr;
 use std::path::PathBuf;
 use thiserror::Error;
 #[derive(Error, Debug)]
+#[expect(dead_code)]
 pub enum BaseErr {
     // ==========================================
     // 1. Terminal / Backend Errors (Crossterm / Ratatui)

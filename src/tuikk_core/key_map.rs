@@ -2,17 +2,19 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde::{Deserialize, Serialize};
 use serde_with::{DeserializeFromStr, SerializeDisplay};
 use std::{borrow::Borrow, collections::HashMap, fmt, str::FromStr};
+
+use crate::tuikk_core::config::AppConfig;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum KeyScope {
-    Dashboard,
+    Global,
     Containers,
     Images,
     Settings,
     Logs,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Command {
     Quit,
@@ -26,6 +28,8 @@ pub enum Command {
     Stop,
     Restart,
     Logs,
+    Search,
+    Delete,
 }
 #[derive(Debug, Clone, PartialEq, Eq, Hash, DeserializeFromStr, SerializeDisplay)]
 pub struct KeySeq(pub Vec<KeyEvent>);
@@ -60,7 +64,20 @@ impl KeyMap {
         self.0
             .get(&scope)
             .and_then(|m| m.get(seq))
-            .or_else(|| self.0.get(&KeyScope::Dashboard)?.get(seq))
+            .or_else(|| self.0.get(&KeyScope::Global)?.get(seq))
+    }
+    pub fn has_prefix(&self, scope: KeyScope, seq: &[KeyEvent]) -> bool {
+        let in_scope = |s: KeyScope| {
+            self.0.get(&s).is_some_and(|m| {
+                m.keys()
+                    .any(|k| k.0.len() > seq.len() && k.0.starts_with(seq))
+            })
+        };
+        in_scope(scope) || in_scope(KeyScope::Global)
+    }
+
+    pub fn load() -> Self {
+        AppConfig::global().keybindings.clone()
     }
 }
 
