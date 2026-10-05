@@ -57,6 +57,7 @@ impl Borrow<[KeyEvent]> for KeySeq {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct KeyMap(pub HashMap<KeyScope, HashMap<KeySeq, Command>>);
 
 impl KeyMap {

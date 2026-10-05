@@ -3,6 +3,7 @@ use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use smart_default::SmartDefault;
 use std::collections::HashMap;
+use std::default;
 use std::fs::{create_dir_all, read_to_string, write};
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
@@ -10,7 +11,7 @@ use tuikk_macros::extend_base_err;
 
 use crate::tuikk_core::docker_conn::DockerConfig;
 use crate::tuikk_core::key_map::KeyMap;
-use crate::tuikk_core::themes::Themes;
+use crate::tuikk_core::themes::ThemeColor;
 use crate::tuikk_core::ui_config::UiConfig;
 
 #[extend_base_err]
@@ -26,6 +27,12 @@ pub enum ConfigError {
 
     #[error("TOML serialization error: {0}")]
     Serialize(#[from] toml::ser::Error),
+
+    #[error("Theme file parse error: {0}")]
+    ThemeParse(String),
+
+    #[error("Json serialization error: {0}")]
+    Json5(#[from] json5::Error),
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -43,7 +50,8 @@ pub struct AppConfig {
     #[default("dark".to_owned())]
     pub theme: String,
     #[serde(skip_serializing)]
-    pub themes: HashMap<String, Themes>,
+    #[default(ThemeColor::default())]
+    pub theme_color: ThemeColor,
     pub ui: UiConfig,
 
     // Logging
@@ -54,16 +62,28 @@ pub struct AppConfig {
     pub docker: DockerConfig,
 
     #[serde(skip_serializing)]
-    #[default(builtin_keymap())]
+    #[default(KeyMap::default())]
     pub keybindings: KeyMap,
     pub query_mode: QueryMode,
 }
 
+// Key binding
 const KEY_FILE_NAME: &str = "keybindings.toml";
 
-fn builtin_keymap() -> KeyMap {
-    toml::from_str(AppConfig::get_path(KEY_FILE_NAME).unwrap())
-        .expect(".config/keybindings.toml not valid")
+fn builtin_keymap() -> Result<KeyMap, ConfigError> {
+    let path = AppConfig::get_path(KEY_FILE_NAME)?;
+
+    if !path.exists() {
+        return Ok(KeyMap::default());
+    }
+
+    let content = read_to_string(&path)?;
+    let keymap = toml::from_str(&content).map_err(|e| {
+        tracing::warn!("Invalid keybindings file at {}: {e}", path.display());
+        e
+    })?;
+
+    Ok(keymap)
 }
 
 fn merge_keymap(mut base: KeyMap, user: KeyMap) -> KeyMap {
@@ -73,6 +93,29 @@ fn merge_keymap(mut base: KeyMap, user: KeyMap) -> KeyMap {
     base
 }
 
+// Theme color
+const THEME_JSON5_FILE_NAME: &str = "theme.json5";
+const THEME_JSON_FILE_NAME: &str = "theme.json";
+fn buildin_theme_color(theme: String) -> Result<ThemeColor, ConfigError> {
+    let path = [THEME_JSON5_FILE_NAME, THEME_JSON_FILE_NAME]
+        .iter()
+        .map(|name| AppConfig::get_path(name))
+        .filter_map(|r| r.ok())
+        .find(|p| p.exists());
+
+    let Some(path) = path else {
+        return Ok(ThemeColor::default());
+    };
+
+    let content = read_to_string(&path)?;
+    let themes: HashMap<String, ThemeColor> = json5::from_str(&content).map_err(|e| {
+        tracing::warn!("Invalid theme file at {}: {e}", path.display());
+        ConfigError::ThemeParse(e.to_string())
+    })?;
+    let theme_color = themes.get(&theme).copied().unwrap_or_default();
+    Ok(theme_color)
+}
+
 // =========Constants=============
 const CONFIG_FILE_NAME: &str = "config.toml";
 static APP_CONFIG: OnceLock<ArcSwap<AppConfig>> = OnceLock::new();
@@ -80,7 +123,9 @@ static APP_CONFIG: OnceLock<ArcSwap<AppConfig>> = OnceLock::new();
 impl AppConfig {
     fn finalize(mut self) -> Self {
         self.ui = self.ui.sanitized();
-        self.keybindings = merge_keymap(builtin_keymap(), self.keybindings);
+        let base = builtin_keymap().unwrap_or_default();
+        self.keybindings = merge_keymap(base, self.keybindings);
+        self.theme_color = buildin_theme_color(self.theme.clone()).unwrap_or_default();
         self
     }
 
