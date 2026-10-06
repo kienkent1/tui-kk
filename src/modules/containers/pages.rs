@@ -17,6 +17,7 @@ use crate::{
         app_services::AppServices,
         config::{AppConfig, QueryMode},
         key_map::{Command, KeyScope},
+        themes::ThemeColor,
     },
 };
 
@@ -34,7 +35,7 @@ pub struct ContainerPage {
 }
 
 impl ContainerPage {
-    pub fn new(services: &'static AppServices, tx: Tx) -> Self {
+    pub fn new(services: &'static AppServices, tx: Tx, theme_color: &ThemeColor) -> Self {
         let svc = services.containers.clone();
         let app_config = AppConfig::global();
         Self {
@@ -43,6 +44,7 @@ impl ContainerPage {
                 svc.clone(),
                 tx.clone(),
                 app_config.query_mode == QueryMode::Local,
+                theme_color,
             ),
             tx: tx,
             tasks: Vec::new(),

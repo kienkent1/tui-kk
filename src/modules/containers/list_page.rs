@@ -10,6 +10,7 @@ use crate::{
     tuikk_core::{
         click_tracker::{ClickTracker, Clicks},
         key_map::{Command, KeyScope},
+        themes::ThemeColor,
     },
 };
 use bollard::plugin::ContainerSummary;
@@ -24,6 +25,7 @@ pub struct ContainerListPage {
     svc: Arc<ContainerService>,
     tx: Tx,
     is_local: bool,
+    theme_color: ThemeColor,
 
     items: Vec<ContainerSummary>,
     filter: BaseFilter,
@@ -50,11 +52,17 @@ pub struct ContainerListPage {
 }
 
 impl ContainerListPage {
-    pub fn new(svc: Arc<ContainerService>, tx: Tx, is_local: bool) -> Self {
+    pub fn new(
+        svc: Arc<ContainerService>,
+        tx: Tx,
+        is_local: bool,
+        theme_color: &ThemeColor,
+    ) -> Self {
         Self {
             svc,
             tx,
             is_local,
+            theme_color: *theme_color,
             items: Vec::new(),
             filter: BaseFilter::default(),
             clicks: ClickTracker::default(),
@@ -396,11 +404,14 @@ impl Page for ContainerListPage {
         // ── search box ──
 
         let (text, border) = if self.input_mode {
-            (self.draft.clone(), Style::new().fg(Color::Yellow))
+            (
+                self.draft.clone(),
+                Style::new().fg(self.theme_color.border_focus),
+            )
         } else {
             (
                 self.filter.search.clone().unwrap_or_default(),
-                Style::new().fg(Color::DarkGray),
+                Style::new().fg(self.theme_color.info),
             )
         };
 
@@ -411,7 +422,11 @@ impl Page for ContainerListPage {
             .border_style(border);
         let inner = block.inner(search_area);
 
-        frame.render_widget(Paragraph::new(text).block(block), search_area);
+        let text_color = Style::new().fg(self.theme_color.text);
+        frame.render_widget(
+            Paragraph::new(text).style(text_color).block(block),
+            search_area,
+        );
 
         if self.input_mode {
             let w = ratatui::text::Line::from(self.draft.as_str()).width() as u16;

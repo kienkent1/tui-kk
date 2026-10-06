@@ -3,12 +3,12 @@ use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use smart_default::SmartDefault;
 use std::collections::HashMap;
-use std::default;
 use std::fs::{create_dir_all, read_to_string, write};
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 use tuikk_macros::extend_base_err;
 
+use crate::shared::helpers::ext_log::ResultExt;
 use crate::tuikk_core::docker_conn::DockerConfig;
 use crate::tuikk_core::key_map::KeyMap;
 use crate::tuikk_core::themes::ThemeColor;
@@ -50,7 +50,7 @@ pub struct AppConfig {
     #[default("dark".to_owned())]
     pub theme: String,
     #[serde(skip_serializing)]
-    #[default(ThemeColor::default())]
+    #[default(ThemeColor::default(None))]
     pub theme_color: ThemeColor,
     pub ui: UiConfig,
 
@@ -104,7 +104,7 @@ fn buildin_theme_color(theme: String) -> Result<ThemeColor, ConfigError> {
         .find(|p| p.exists());
 
     let Some(path) = path else {
-        return Ok(ThemeColor::default());
+        return Ok(ThemeColor::default(None));
     };
 
     let content = read_to_string(&path)?;
@@ -125,7 +125,8 @@ impl AppConfig {
         self.ui = self.ui.sanitized();
         let base = builtin_keymap().unwrap_or_default();
         self.keybindings = merge_keymap(base, self.keybindings);
-        self.theme_color = buildin_theme_color(self.theme.clone()).unwrap_or_default();
+
+        self.theme_color = buildin_theme_color(self.theme.clone()).log_warn().unwrap();
         self
     }
 
@@ -207,7 +208,10 @@ impl AppConfig {
     pub fn save_to_file(&self) -> Result<(), ConfigError> {
         let path = Self::config_path()?;
         let content = toml::to_string_pretty(self)?;
-        write(path, content)?;
-        Ok(())
+        self.save_file(path, content)
+    }
+
+    pub fn save_file(&self, path: PathBuf, content: String) -> Result<(), ConfigError> {
+        write(path, content).map_err(|e| ConfigError::Io(e))
     }
 }

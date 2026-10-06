@@ -8,6 +8,7 @@ use crate::{
     },
     tuikk_core::{
         app_services::AppServices,
+        config::AppConfig,
         key_map::{Command, KeyScope},
         route::Route,
     },
@@ -28,10 +29,15 @@ impl Router {
     pub fn new(tx: &Tx) -> Self {
         let mut pages: HashMap<Route, PageBox> = HashMap::new();
         let services = AppServices::get();
+        let app_config = AppConfig::global();
 
         pages.insert(
             Route::Containers,
-            Box::new(ContainerPage::new(services, tx.clone())),
+            Box::new(ContainerPage::new(
+                services,
+                tx.clone(),
+                &app_config.theme_color,
+            )),
         );
 
         Self {

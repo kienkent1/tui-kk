@@ -38,7 +38,7 @@ async fn main() -> Result<()> {
 
     let mut tui = Tui::new(tick_rate, frame_rate).mouse(true).paste(true);
     let mut app = App::new();
-    app.run(&mut tui).await?;
+    app.run(&mut tui, &app_config.theme_color).await?;
 
     Ok(())
 }

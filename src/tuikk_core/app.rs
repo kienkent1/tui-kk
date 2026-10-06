@@ -2,17 +2,16 @@ use crate::shared::base::base_action::Action;
 use crate::tuikk_core::key_map::{Command, KeyMap};
 use crate::tuikk_core::route::Route;
 use crate::tuikk_core::routers::Router;
+use crate::tuikk_core::themes::ThemeColor;
 use crate::tuikk_core::tui::{Event, Tui};
 use color_eyre::Result;
-use crossterm::event::{EventStream, KeyCode, KeyEventKind};
+use crossterm::event::{KeyCode, KeyEventKind};
 use crossterm::event::{KeyEvent, KeyModifiers};
-use futures_util::StreamExt;
-use ratatui::{DefaultTerminal, Frame};
-use serde::Deserialize;
-use std::collections::HashMap;
+use ratatui::Frame;
+use ratatui::style::{Color, Style};
+use ratatui::widgets::Block;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
-use tokio::time::interval;
 
 const KEY_SEQ_TIMEOUT: Duration = Duration::from_secs(1);
 pub struct App {
@@ -39,7 +38,7 @@ impl App {
         }
     }
 
-    pub async fn run(&mut self, tui: &mut Tui) -> Result<()> {
+    pub async fn run(&mut self, tui: &mut Tui, theme_color: &ThemeColor) -> Result<()> {
         tui.enter()?;
         self.router.activate_current();
 
@@ -51,7 +50,7 @@ impl App {
 
             match tui.next_event().await {
                 Some(Event::Render) => {
-                    tui.draw(|f| self.router.draw(f, f.area()))?;
+                    tui.draw(|f| self.draw(f, &theme_color.bg))?;
                 }
                 Some(Event::Tick) => {
                     if self
@@ -64,7 +63,7 @@ impl App {
                 }
                 Some(Event::Key(key)) => self.on_key(key),
                 Some(Event::Resize(w, h)) => {
-                    tui.draw(|f| self.router.draw(f, f.area()))?;
+                    tui.draw(|f| self.draw(f, &theme_color.bg))?;
                 }
                 Some(Event::Error(e)) => {
                     tracing::error!(e)
@@ -178,5 +177,15 @@ impl App {
                 }
             }
         }
+    }
+
+    fn draw(&mut self, f: &mut Frame, bg: &Color) {
+        let area = f.area();
+        f.render_widget(
+            Block::default().style(Style::default().bg(*bg)),
+            area.clone(),
+        );
+
+        self.router.draw(f, area)
     }
 }
