@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 mod base_err_macro;
-
+mod color_serde_fields;
 #[cfg(test)]
 mod tests;
 #[proc_macro_attribute]

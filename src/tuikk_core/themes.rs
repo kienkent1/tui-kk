@@ -1,7 +1,9 @@
+use crate::tuikk_core::serdes::color_serde;
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
+use serde_with::apply;
 use smart_default::SmartDefault;
-
+#[apply(Color => #[serde(with = "color_serde")])]
 #[derive(Debug, Clone, Copy, SmartDefault, Deserialize, Serialize)]
 #[serde(default)]
 pub struct ThemeColor {

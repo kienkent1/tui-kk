@@ -8,6 +8,7 @@ pub mod key_map;
 pub mod logging;
 pub mod route;
 pub mod routers;
+pub mod serdes;
 pub mod themes;
 pub mod tui;
 pub mod ui_config;
