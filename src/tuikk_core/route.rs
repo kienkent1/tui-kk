@@ -13,3 +13,14 @@ pub enum Route {
     Settings,
     Logs,
 }
+
+pub struct Pages {
+    route: Route,
+    pub name: &'static str,
+}
+
+impl Pages {
+    pub fn new(route: Route, name: &'static str) -> Self {
+        Self { route, name }
+    }
+}

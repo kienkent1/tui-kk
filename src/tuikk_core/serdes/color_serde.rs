@@ -1,13 +1,15 @@
 use std::str::FromStr;
 
 use ratatui::style::Color;
-use serde::{Deserialize, Deserializer, Serializer, de};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 pub fn serialize<S: Serializer>(color: &Color, s: S) -> Result<S::Ok, S::Error> {
-    match color {
-        Color::Rgb(r, g, b) => s.serialize_str(&format!("rgb({r}, {g}, {b})")),
-        other => s.collect_str(other), // uses ratatui's Display
-    }
+    // use ratatui serialize
+    color.serialize(s)
+    // match color {
+    //     Color::Rgb(r, g, b) => s.serialize_str(&format!("rgb({r}, {g}, {b})")),
+    //     other => s.collect_str(other), // uses ratatui's Display
+    // }
 }
 
 pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Color, D::Error> {
@@ -21,7 +23,7 @@ pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Color, D::Error> {
 }
 
 fn parse_rgb(s: &str) -> Option<Color> {
-    let inner = s.strip_prefix("rgb(")?.strip_prefix(")")?;
+    let inner = s.strip_prefix("rgb(")?.strip_suffix(")")?;
     let mut it = inner.split(',').map(|p| p.trim().parse::<u8>());
     let (r, g, b) = (it.next()?.ok()?, it.next()?.ok()?, it.next()?.ok()?);
     if it.next().is_some() {

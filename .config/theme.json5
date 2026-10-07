@@ -34,7 +34,7 @@
     bg_selected: "#BAD5F8",
     border: "#B9C8E1",
     border_focus: "#1E6ED2",
-    text: "#10245f",
+    text: "rgb(47, 50, 215)",
     text_muted: "#7382A5",
     text_selected: "#0F1E46",
     input_bg: "#FFFFFF",
