@@ -1,4 +1,4 @@
-theme = "light"
+theme = "dark"
 log_level = "warning"
 query_mode = "local"
 log_dir = "./logs"

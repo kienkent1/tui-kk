@@ -97,6 +97,10 @@ fn merge_keymap(mut base: KeyMap, user: KeyMap) -> KeyMap {
 const THEME_JSON5_FILE_NAME: &str = "theme.json5";
 const THEME_JSON_FILE_NAME: &str = "theme.json";
 fn buildin_theme_color(theme: String) -> Result<ThemeColor, ConfigError> {
+    if theme == "dark".to_owned() || theme == "light".to_owned() {
+        return Ok(ThemeColor::default(Some(theme)));
+    }
+
     let path = [THEME_JSON5_FILE_NAME, THEME_JSON_FILE_NAME]
         .iter()
         .map(|name| AppConfig::get_path(name))
