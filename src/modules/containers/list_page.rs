@@ -18,7 +18,7 @@ use crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEvent, MouseEventKin
 use ratatui::{
     Frame,
     layout::{Constraint, Layout, Position, Rect},
-    style::{Color, Modifier, Style},
+    style::{Color, Modifier, Style, Stylize},
     widgets::{Block, Cell, Paragraph, Row, Table, TableState},
 };
 pub struct ContainerListPage {
@@ -411,7 +411,7 @@ impl Page for ContainerListPage {
         } else {
             (
                 self.filter.search.clone().unwrap_or_default(),
-                Style::new().fg(self.theme_color.info),
+                Style::new().fg(self.theme_color.border),
             )
         };
 
@@ -422,7 +422,7 @@ impl Page for ContainerListPage {
             .border_style(border);
         let inner = block.inner(search_area);
 
-        let text_color = Style::new().fg(self.theme_color.text);
+        let text_color = Style::new().fg(self.theme_color.input_cursor);
         frame.render_widget(
             Paragraph::new(text).style(text_color).block(block),
             search_area,
@@ -465,8 +465,11 @@ impl Page for ContainerListPage {
             })
             .collect();
 
-        let header = Row::new(["NAME", "IMAGE", "STATE", "STATUS", "ID"])
-            .style(Style::new().add_modifier(Modifier::BOLD));
+        let header = Row::new(["NAME", "IMAGE", "STATE", "STATUS", "ID"]).style(
+            Style::new()
+                .fg(self.theme_color.list_header_text)
+                .add_modifier(Modifier::BOLD),
+        );
 
         let mut title = format!(" Containers ({len}) ");
         if self.loading {
@@ -487,8 +490,12 @@ impl Page for ContainerListPage {
             ],
         )
         .header(header)
-        .block(Block::bordered().title(title))
-        .row_highlight_style(Style::new().add_modifier(Modifier::REVERSED));
+        .block(Block::bordered().fg(self.theme_color.border).title(title))
+        .row_highlight_style(
+            Style::new()
+                .fg(self.theme_color.border)
+                .add_modifier(Modifier::REVERSED),
+        );
 
         let mut state = TableState::default();
         if len > 0 {

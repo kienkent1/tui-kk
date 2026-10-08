@@ -188,36 +188,36 @@ impl ThemeColor {
     pub fn dark() -> Self {
         Self {
             // Layout — ayu dark
-            bg: Color::Rgb(16, 20, 28),           // #10141c — editor bg
-            bg_panel: Color::Rgb(20, 24, 33),     // #141821 — panel / widget bg
-            bg_selected: Color::Rgb(71, 82, 102), // #475266 — list selection (opaque)
+            bg: Color::Rgb(16, 20, 28),           // #10141c
+            bg_panel: Color::Rgb(20, 24, 33),     // #141821
+            bg_selected: Color::Rgb(71, 82, 102), // #475266
 
             // Border
-            border: Color::Rgb(27, 31, 41),         // #1b1f29
-            border_focus: Color::Rgb(230, 180, 80), // #e6b450 — ayu gold accent
+            border: Color::Rgb(122, 138, 184),      // #7a8ab8
+            border_focus: Color::Rgb(82, 139, 255), // #528BFF — One Dark blue focus
 
             // Text
-            text: Color::Rgb(191, 189, 182), // #bfbdb6 — primary foreground
-            text_muted: Color::Rgb(90, 99, 120), // #5a6378 — muted / secondary
-            text_selected: Color::Rgb(191, 189, 182), // same as text on selection bg
+            text: Color::Rgb(191, 189, 182),          // #bfbdb6
+            text_muted: Color::Rgb(90, 99, 120),      // #5a6378
+            text_selected: Color::Rgb(191, 189, 182), // same as text
 
             // Input
             input_bg: Color::Rgb(16, 20, 28),           // #10141c
-            input_bg_focus: Color::Rgb(20, 24, 33),     // #141821 slightly lighter
+            input_bg_focus: Color::Rgb(20, 24, 33),     // #141821
             input_text: Color::Rgb(191, 189, 182),      // #bfbdb6
-            input_placeholder: Color::Rgb(90, 99, 120), // #5a637880 muted
-            input_cursor: Color::Rgb(230, 180, 80),     // #e6b450 — gold cursor
+            input_placeholder: Color::Rgb(90, 99, 120), // #5a6378
+            input_cursor: Color::Rgb(82, 139, 255),     // #528BFF
 
-            // Accent — ayu signature gold
-            accent: Color::Rgb(230, 180, 80),     // #e6b450
-            accent_text: Color::Rgb(118, 91, 36), // #765b24 — dark text on gold bg
+            // Accent — One Dark blue
+            accent: Color::Rgb(82, 139, 255),       // #528BFF
+            accent_text: Color::Rgb(255, 255, 255), // white on blue
 
             // Container status
-            status_running: Color::Rgb(112, 191, 86), // #70bf56 green
-            status_stopped: Color::Rgb(242, 109, 120), // #f26d78 red
-            status_paused: Color::Rgb(255, 180, 84),  // #ffb454 yellow
-            status_dead: Color::Rgb(90, 99, 120),     // #5a6378 muted
-            status_restarting: Color::Rgb(57, 186, 230), // #39bae6 cyan
+            status_running: Color::Rgb(112, 191, 86), // #70bf56
+            status_stopped: Color::Rgb(242, 109, 120), // #f26d78
+            status_paused: Color::Rgb(255, 180, 84),  // #ffb454
+            status_dead: Color::Rgb(90, 99, 120),     // #5a6378
+            status_restarting: Color::Rgb(57, 186, 230), // #39bae6
 
             // Severity
             success: Color::Rgb(112, 191, 86), // #70bf56
@@ -226,8 +226,8 @@ impl ThemeColor {
             info: Color::Rgb(57, 186, 230),    // #39bae6
 
             // Scrollbar
-            scrollbar_track: Color::Rgb(16, 20, 28), // #10141c — same as bg
-            scrollbar_thumb: Color::Rgb(90, 99, 120), // #5a637866 opaque
+            scrollbar_track: Color::Rgb(16, 20, 28), // #10141c
+            scrollbar_thumb: Color::Rgb(90, 99, 120), // #5a6378
 
             // Tab bar
             tab_active_bg: Color::Rgb(16, 20, 28), // #10141c
@@ -245,21 +245,21 @@ impl ThemeColor {
             // List / Table
             list_row_even: Color::Rgb(16, 20, 28), // #10141c
             list_row_odd: Color::Rgb(13, 16, 23),  // #0d1017
-            list_header_text: Color::Rgb(230, 180, 80), // #e6b450 gold
+            list_header_text: Color::Rgb(82, 139, 255), // #528BFF
             list_header_bg: Color::Rgb(20, 24, 33), // #141821
 
             // Modal / Dialog
             modal_bg: Color::Rgb(20, 24, 33),       // #141821
-            modal_border: Color::Rgb(230, 180, 80), // #e6b450
-            modal_overlay: Color::Rgb(0, 0, 0),     // near-black
+            modal_border: Color::Rgb(82, 139, 255), // #528BFF
+            modal_overlay: Color::Rgb(0, 0, 0),
 
             // Tooltip / Popup
             tooltip_bg: Color::Rgb(20, 24, 33),      // #141821
             tooltip_text: Color::Rgb(191, 189, 182), // #bfbdb6
 
             // Keybinding hint bar
-            keybind_bar_bg: Color::Rgb(1, 1, 2), // #010102 — status bar bg
-            keybind_key: Color::Rgb(230, 180, 80), // #e6b450 gold
+            keybind_bar_bg: Color::Rgb(1, 1, 2),   // #010102
+            keybind_key: Color::Rgb(82, 139, 255), // #528BFF
             keybind_desc: Color::Rgb(90, 99, 120), // #5a6378
         }
     }
@@ -267,36 +267,36 @@ impl ThemeColor {
     pub fn light() -> Self {
         Self {
             // Layout — ayu light
-            bg: Color::Rgb(252, 252, 252),       // #fcfcfc — editor bg
-            bg_panel: Color::Rgb(248, 249, 250), // #f8f9fa — surface / panel
-            bg_selected: Color::Rgb(107, 125, 143), // #6b7d8f24 opaque selection
+            bg: Color::Rgb(252, 252, 252),          // #fcfcfc
+            bg_panel: Color::Rgb(248, 249, 250),    // #f8f9fa
+            bg_selected: Color::Rgb(107, 125, 143), // #6b7d8f opaque selection
 
             // Border
-            border: Color::Rgb(224, 228, 231), // #e0e4e7 — surface.border
-            border_focus: Color::Rgb(242, 151, 24), // #f29718 — ayu orange accent
+            border: Color::Rgb(81, 93, 110),        // #515d6e
+            border_focus: Color::Rgb(82, 111, 255), // #526FFF — indigo
 
             // Text
-            text: Color::Rgb(92, 97, 102), // #5c6166 — primary fg
-            text_muted: Color::Rgb(130, 142, 159), // #828e9f — secondary / muted
-            text_selected: Color::Rgb(92, 97, 102), // same on selection bg
+            text: Color::Rgb(92, 97, 102),         // #5c6166
+            text_muted: Color::Rgb(130, 142, 159), // #828e9f
+            text_selected: Color::Rgb(92, 97, 102),
 
             // Input
-            input_bg: Color::Rgb(252, 252, 252),       // #fcfcfc
-            input_bg_focus: Color::Rgb(248, 249, 250), // #f8f9fa slightly darker
-            input_text: Color::Rgb(92, 97, 102),       // #5c6166
-            input_placeholder: Color::Rgb(130, 142, 159), // #828e9f
-            input_cursor: Color::Rgb(242, 151, 24),    // #f29718 orange cursor
+            input_bg: Color::Rgb(252, 252, 252), // #fcfcfc
+            input_bg_focus: Color::Rgb(248, 249, 250),
+            input_text: Color::Rgb(92, 97, 102), // #5c6166
+            input_placeholder: Color::Rgb(130, 142, 159),
+            input_cursor: Color::Rgb(82, 111, 255), // #526FFF
 
-            // Accent — ayu orange
-            accent: Color::Rgb(242, 151, 24),    // #f29718
-            accent_text: Color::Rgb(126, 75, 1), // #7e4b01 — dark brown on orange
+            // Accent — indigo
+            accent: Color::Rgb(82, 111, 255),       // #526FFF
+            accent_text: Color::Rgb(255, 255, 255), // white on indigo
 
             // Container status
-            status_running: Color::Rgb(108, 191, 67), // #6cbf43 green
-            status_stopped: Color::Rgb(230, 80, 80),  // #e65050 red
-            status_paused: Color::Rgb(235, 164, 0),   // #eba400 amber
-            status_dead: Color::Rgb(130, 142, 159),   // #828e9f muted
-            status_restarting: Color::Rgb(85, 180, 212), // #55b4d4 cyan
+            status_running: Color::Rgb(108, 191, 67), // #6cbf43
+            status_stopped: Color::Rgb(230, 80, 80),  // #e65050
+            status_paused: Color::Rgb(235, 164, 0),   // #eba400
+            status_dead: Color::Rgb(130, 142, 159),   // #828e9f
+            status_restarting: Color::Rgb(85, 180, 212), // #55b4d4
 
             // Severity
             success: Color::Rgb(108, 191, 67), // #6cbf43
@@ -306,39 +306,39 @@ impl ThemeColor {
 
             // Scrollbar
             scrollbar_track: Color::Rgb(248, 249, 250), // #f8f9fa
-            scrollbar_thumb: Color::Rgb(130, 142, 159), // #828e9f66 opaque
+            scrollbar_thumb: Color::Rgb(130, 142, 159), // #828e9f
 
             // Tab bar
-            tab_active_bg: Color::Rgb(252, 252, 252), // #fcfcfc — active tab bg
+            tab_active_bg: Color::Rgb(252, 252, 252), // #fcfcfc
             tab_active_text: Color::Rgb(92, 97, 102), // #5c6166
-            tab_inactive_bg: Color::Rgb(241, 242, 244), // #f1f2f4 — tab strip bg
+            tab_inactive_bg: Color::Rgb(241, 242, 244), // #f1f2f4
             tab_inactive_text: Color::Rgb(130, 142, 159), // #828e9f
 
             // Sidebar
             sidebar_bg: Color::Rgb(248, 249, 250),   // #f8f9fa
             sidebar_text: Color::Rgb(130, 142, 159), // #828e9f
             sidebar_text_active: Color::Rgb(92, 97, 102), // #5c6166
-            sidebar_active_bg: Color::Rgb(107, 125, 143), // #6b7d8f24 opaque
+            sidebar_active_bg: Color::Rgb(107, 125, 143), // #6b7d8f
             sidebar_section: Color::Rgb(130, 142, 159), // #828e9f
 
             // List / Table
             list_row_even: Color::Rgb(252, 252, 252), // #fcfcfc
             list_row_odd: Color::Rgb(248, 249, 250),  // #f8f9fa
-            list_header_text: Color::Rgb(242, 151, 24), // #f29718 orange
+            list_header_text: Color::Rgb(82, 111, 255), // #526fff
             list_header_bg: Color::Rgb(241, 242, 244), // #f1f2f4
 
             // Modal / Dialog
-            modal_bg: Color::Rgb(250, 250, 250), // #fafafa — widget bg
-            modal_border: Color::Rgb(242, 151, 24), // #f29718
-            modal_overlay: Color::Rgb(107, 125, 143), // #6b7d8f muted overlay
+            modal_bg: Color::Rgb(250, 250, 250),      // #fafafa
+            modal_border: Color::Rgb(82, 111, 255),   // #526fff
+            modal_overlay: Color::Rgb(107, 125, 143), // #6b7d8f
 
             // Tooltip / Popup
             tooltip_bg: Color::Rgb(250, 250, 250), // #fafafa
             tooltip_text: Color::Rgb(92, 97, 102), // #5c6166
 
             // Keybinding hint bar
-            keybind_bar_bg: Color::Rgb(235, 238, 240), // #ebeef0 — status bar bg
-            keybind_key: Color::Rgb(242, 151, 24),     // #f29718 orange
+            keybind_bar_bg: Color::Rgb(235, 238, 240), // #ebeef0
+            keybind_key: Color::Rgb(82, 111, 255),     // #526fff
             keybind_desc: Color::Rgb(130, 142, 159),   // #828e9f
         }
     }
