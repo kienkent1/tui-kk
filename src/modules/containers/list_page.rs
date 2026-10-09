@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::BTreeSet, sync::Arc};
 
 use crate::{
     modules::containers::{actions::ContainerAction as CA, container_service::ContainerService},
@@ -18,7 +18,7 @@ use crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEvent, MouseEventKin
 use ratatui::{
     Frame,
     layout::{Constraint, Layout, Position, Rect},
-    style::{Color, Modifier, Style, Stylize},
+    style::{Modifier, Style, Stylize},
     widgets::{Block, Cell, Paragraph, Row, Table, TableState},
 };
 pub struct ContainerListPage {
@@ -455,17 +455,31 @@ impl Page for ContainerListPage {
                     c.id.as_deref()
                         .map(|s| &s[..s.len().min(12)])
                         .unwrap_or("-");
+                let ports: String = match &c.ports {
+                    Some(p) => p
+                        .iter()
+                        .map(|port| match port.public_port {
+                            Some(pub_p) => format!("{}:{}", pub_p, port.private_port),
+                            None => format!("{}", port.private_port),
+                        })
+                        .collect::<BTreeSet<_>>()
+                        .into_iter()
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    None => String::new(),
+                };
                 Row::new(vec![
                     Cell::from(name.to_owned()),
+                    Cell::from(short_id.to_owned()),
                     Cell::from(c.image.clone().unwrap_or_default()),
+                    Cell::from(ports),
                     Cell::from(c.state.map(|s| s.to_string()).unwrap_or_default()),
                     Cell::from(c.status.clone().unwrap_or_default()),
-                    Cell::from(short_id.to_owned()),
                 ])
             })
             .collect();
 
-        let header = Row::new(["NAME", "IMAGE", "STATE", "STATUS", "ID"]).style(
+        let header = Row::new(["NAME", "ID", "IMAGE", "PORT", "STATE", "STATUS"]).style(
             Style::new()
                 .fg(self.theme_color.list_header_text)
                 .add_modifier(Modifier::BOLD),
@@ -482,11 +496,12 @@ impl Page for ContainerListPage {
         let table = Table::new(
             body,
             [
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
-                Constraint::Length(10),
-                Constraint::Percentage(25),
-                Constraint::Length(12),
+                Constraint::Percentage(20), // NAME
+                Constraint::Length(13),     // ID   (12 chars + 1 padding)
+                Constraint::Percentage(25), // IMAGE
+                Constraint::Percentage(10), // PORTS
+                Constraint::Length(10),     // STATE
+                Constraint::Fill(1),        // STATUS
             ],
         )
         .header(header)
@@ -494,8 +509,10 @@ impl Page for ContainerListPage {
         .row_highlight_style(
             Style::new()
                 .fg(self.theme_color.border)
+                .bg(self.theme_color.list_header_text)
                 .add_modifier(Modifier::REVERSED),
-        );
+        )
+        .row_highlight_style(Style::new().bg(self.theme_color.sidebar_active_bg));
 
         let mut state = TableState::default();
         if len > 0 {
