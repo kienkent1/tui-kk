@@ -34,6 +34,7 @@ pub enum Action {
     Stop,
     Restart,
     Logs,
+    MouseCapture,
 
     //page action
     Containers(ContainerAction),

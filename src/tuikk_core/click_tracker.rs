@@ -54,8 +54,9 @@ impl ClickTracker {
         self.click
     }
 
-    /// `key` identifies the target (row index, button id, ...).
-    /// Returns `Nothing` if the event was ignored as noise.
+    /// Registers a click at (`col`, `row`).
+    /// Returns `Clicks::Nothing` if the event was ignored as noise.
+    /// Use the return value; `click()` still holds the last accepted click.
     pub fn listen(&mut self, col: u16, row: u16) -> Clicks {
         self.listen_at(Instant::now(), col, row)
     }

@@ -3,12 +3,31 @@
 "<ctrl-c>" = "quit"
 "<tab>"    = "next_page"
 "<backtab>" = "prev_page"
-
-[containers]
+"<f5>"     = "refresh"
 "<j>"      = "down"
 "<k>"      = "up"
 "<enter>"  = "select"
 "<s>"      = "stop"
 "<ctrl-r>" = "restart"
+"<ctrl-s>" = "suspend"
 "<l>"      = "logs"
 "</>"      = "search"
+"<shift-m>" = "mouse_capture"
+
+# Available action:
+# Suspend,
+# Quit,
+# ClearScreen,
+# Help,
+# NextPage,
+# PrevPage,
+
+# Up,
+# Down,
+# Select,
+# Back,
+# Refresh,
+# Stop,
+# Restart,
+# Logs,
+# MouseCapture,

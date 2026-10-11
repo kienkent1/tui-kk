@@ -1,7 +1,10 @@
 use color_eyre::{Report, Result};
 use directories::ProjectDirs;
 use std::path::PathBuf;
-use tracing_appender::non_blocking::WorkerGuard;
+use tracing_appender::{
+    non_blocking::WorkerGuard,
+    rolling::{RollingFileAppender, Rotation},
+};
 use tracing_subscriber::{self, EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Window
@@ -25,7 +28,11 @@ pub fn init_logging(
 
     std::fs::create_dir_all(&log_dir)?;
 
-    let file_appender = tracing_appender::rolling::hourly(&log_dir, format!("{app_prefix}.log"));
+    let file_appender = RollingFileAppender::builder()
+        .rotation(Rotation::HOURLY)
+        // No prefix, so the date comes first: "2026-10-10-14.<app_prefix>.log"
+        .filename_suffix(format!("{app_prefix}.log"))
+        .build(&log_dir)?;
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(log_level));

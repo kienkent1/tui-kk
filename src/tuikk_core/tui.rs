@@ -14,6 +14,8 @@ use crossterm::{
 use futures::StreamExt;
 use ratatui::DefaultTerminal;
 use tokio::time::{Interval, MissedTickBehavior, interval};
+
+use crate::shared::helpers::ext_log::ResultExt;
 #[derive(Debug, Clone)]
 pub enum Event {
     Tick,
@@ -50,7 +52,7 @@ impl Tui {
             render: make_interval(frame_rate),
             mouse: false,
             paste: false,
-            active: true,
+            active: false,
         }
     }
 
@@ -64,12 +66,16 @@ impl Tui {
     }
 
     pub fn enter(&mut self) -> Result<()> {
+        if self.active {
+            return Ok(());
+        }
+        self.terminal = ratatui::init();
         let mut out = std::io::stdout();
         if self.mouse {
-            execute!(out, EnableMouseCapture)?;
+            execute!(out, EnableMouseCapture).log_warn()?;
         }
         if self.paste {
-            execute!(out, EnableBracketedPaste)?;
+            execute!(out, EnableBracketedPaste).log_warn()?;
         }
         self.active = true;
         Ok(())
@@ -79,12 +85,13 @@ impl Tui {
         if !self.active {
             return Ok(());
         }
+
         let mut out = std::io::stdout();
         if self.mouse {
-            execute!(out, DisableMouseCapture)?;
+            execute!(out, DisableMouseCapture).log_warn()?;
         }
         if self.paste {
-            execute!(out, DisableBracketedPaste)?;
+            execute!(out, DisableBracketedPaste).log_warn()?;
         }
         ratatui::restore();
         self.active = false;
@@ -94,9 +101,36 @@ impl Tui {
     pub fn suspend(&mut self) -> Result<()> {
         self.exit()?;
         #[cfg(unix)]
-        signal_hook::low_level::raise(signal_hook::consts::SIGTSTP)?;
-        self.terminal = ratatui::init();
-        self.enter()
+        let raise_result = signal_hook::low_level::raise(signal_hook::consts::SIGTSTP);
+        self.enter()?;
+        self.terminal.clear()?;
+
+        #[cfg(unix)]
+        raise_result?;
+        Ok(())
+    }
+
+    pub fn restart(&mut self) -> Result<()> {
+        self.exit()?;
+        self.enter()?;
+        self.terminal.clear()?;
+        Ok(())
+    }
+
+    pub fn toggle_mouse_capture(&mut self) -> Result<()> {
+        if !self.active {
+            return Ok(());
+        }
+
+        self.mouse = !self.mouse;
+        let mut out = std::io::stdout();
+        if self.mouse {
+            execute!(out, EnableMouseCapture).log_warn()?;
+        } else {
+            execute!(out, DisableMouseCapture).log_warn()?;
+        }
+
+        Ok(())
     }
 
     pub async fn next_event(&mut self) -> Option<Event> {

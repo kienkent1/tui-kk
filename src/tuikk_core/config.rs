@@ -127,7 +127,7 @@ static APP_CONFIG: OnceLock<ArcSwap<AppConfig>> = OnceLock::new();
 impl AppConfig {
     fn finalize(mut self) -> Self {
         self.ui = self.ui.sanitized();
-        let base = builtin_keymap().unwrap_or_default();
+        let base = builtin_keymap().log_warn().unwrap_or_default();
         self.keybindings = merge_keymap(base, self.keybindings);
 
         self.theme_color = buildin_theme_color(self.theme.clone()).log_warn().unwrap();

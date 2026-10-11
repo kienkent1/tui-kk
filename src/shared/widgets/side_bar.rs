@@ -1,9 +1,9 @@
 use crossterm::event::{KeyEvent, MouseEvent};
-use ratatui::{Frame, layout::Rect};
+use ratatui::{Frame, buffer::Buffer, layout::Rect};
 use std::sync::LazyLock;
 
 use crate::{
-    shared::base::base_widget::Widget,
+    shared::base::base_widget::BaseWidget,
     tuikk_core::route::{Pages, Route},
 };
 
@@ -35,13 +35,13 @@ impl SideBar {
     }
 }
 
-impl Widget for SideBar {
+impl BaseWidget for SideBar {
     type Event = SideBarEvent;
     fn handle_key(&mut self, key: KeyEvent) -> Option<SideBarEvent> {
         None
     }
-    fn handle_mouse(&mut self, mouse: MouseEvent) -> Option<Self::Event> {
+    fn handle_mouse(&mut self, area: Rect, mouse: MouseEvent) -> Option<Self::Event> {
         None
     }
-    fn draw(&mut self, frame: &mut Frame, area: Rect, focused: bool) {}
+    fn render(&self, area: Rect, buf: &mut Buffer) {}
 }

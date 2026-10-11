@@ -1,4 +1,5 @@
 use crate::shared::base::base_action::Action;
+use crate::shared::helpers::ext_log::ResultExt;
 use crate::tuikk_core::key_map::{Command, KeyMap};
 use crate::tuikk_core::route::Route;
 use crate::tuikk_core::routers::Router;
@@ -45,7 +46,7 @@ impl App {
         while !self.should_quit {
             // Drain action channel first (none block)
             while let Ok(action) = self.rx.try_recv() {
-                self.handle_action(action);
+                self.handle_action(action, tui);
             }
 
             match tui.next_event().await {
@@ -88,10 +89,25 @@ impl App {
 
     // ───────────────────────── actions / routes ─────────────────────────
 
-    fn handle_action(&mut self, action: Action) {
+    fn handle_action(&mut self, action: Action, tui: &mut Tui) {
         match action {
             Action::Quit => self.should_quit = true,
             Action::Navigate(route) => self.router.navigate(route),
+            Action::Suspend => {
+                if let Err(e) = tui.suspend() {
+                    tracing::warn!("suspend failed: {e}");
+                }
+            }
+            Action::Restart => {
+                if let Err(e) = tui.restart() {
+                    tracing::warn!("terminal restart failed: {e}");
+                }
+            }
+            Action::MouseCapture => {
+                if let Err(e) = tui.toggle_mouse_capture() {
+                    tracing::warn!("mouse capture failed: {e}");
+                }
+            }
             other => {
                 self.router.dispatch(other);
             }
@@ -168,9 +184,12 @@ impl App {
 
     fn run_command(&mut self, cmd: Command) {
         match cmd {
-            Command::Quit => self.should_quit = true,
+            Command::Quit => self.send(Action::Quit),
             Command::NextPage => self.send(Action::Navigate(self.next_route())),
             Command::PrevPage => self.send(Action::Navigate(self.prev_route())),
+            Command::Restart => self.send(Action::Restart),
+            Command::Suspend => self.send(Action::Suspend),
+            Command::MouseCapture => self.send(Action::MouseCapture),
             other => {
                 if let Some(action) = self.router.handle_command(other) {
                     self.send(action);

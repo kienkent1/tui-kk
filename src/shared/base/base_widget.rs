@@ -1,10 +1,10 @@
 use crossterm::event::{KeyEvent, MouseEvent};
-use ratatui::{Frame, layout::Rect};
+use ratatui::{buffer::Buffer, layout::Rect};
 
-pub trait Widget {
+pub trait BaseWidget {
     type Event;
 
     fn handle_key(&mut self, key: KeyEvent) -> Option<Self::Event>;
-    fn handle_mouse(&mut self, mouse: MouseEvent) -> Option<Self::Event>;
-    fn draw(&mut self, frame: &mut Frame, area: Rect, focused: bool);
+    fn handle_mouse(&mut self, area: Rect, mouse: MouseEvent) -> Option<Self::Event>;
+    fn render(&self, area: Rect, buf: &mut Buffer);
 }

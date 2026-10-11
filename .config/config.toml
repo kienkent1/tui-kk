@@ -1,11 +1,11 @@
 #theme = "dark"
 theme = "light"
-log_level = "warning"
+log_level = "debug" #trace, debug, info, warn, error(default)
 query_mode = "local"
 log_dir = "./logs"
 
 [docker]
-default_conn_type = "socket"
+default_conn_type = "socket" # socket(defalut), local, http
 timeout = 120
 
 [ui]

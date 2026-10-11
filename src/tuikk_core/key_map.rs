@@ -27,10 +27,14 @@ pub enum Command {
     Refresh,
     Stop,
     Restart,
+    Suspend,
     Logs,
     Search,
     Delete,
+    Help,
+    MouseCapture,
 }
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, DeserializeFromStr, SerializeDisplay)]
 pub struct KeySeq(pub Vec<KeyEvent>);
 

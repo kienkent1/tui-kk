@@ -13,7 +13,7 @@ use crate::{
         themes::ThemeColor,
     },
 };
-use bollard::plugin::ContainerSummary;
+use bollard::plugin::{ContainerSummary, PortSummaryTypeEnum};
 use crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::{
     Frame,
@@ -203,6 +203,14 @@ impl ContainerListPage {
         self.selected_id = self.row_id(self.cursor);
         self.clamp(len);
     }
+
+    fn refresh(&mut self) {
+        self.input_mode = false;
+        self.draft = String::new();
+        self.prev_search = None;
+        self.filter.search = None;
+        self.on_filter_change();
+    }
 }
 impl Page for ContainerListPage {
     fn scope(&self) -> KeyScope {
@@ -225,7 +233,7 @@ impl Page for ContainerListPage {
         match cmd {
             Command::Down => self.move_cursor(1),
             Command::Up => self.move_cursor(-1),
-            Command::Refresh => self.fetch(),
+            Command::Refresh => self.refresh(),
             Command::Search => {
                 self.prev_search = self.filter.search.clone();
                 self.draft = self.filter.search.clone().unwrap_or_default();
@@ -402,7 +410,16 @@ impl Page for ContainerListPage {
         self.search_area = search_area;
         self.list_area = table_area;
         // ── search box ──
+        self.search_box(frame);
 
+        // ── table ──
+        self.draw_table(frame);
+    }
+}
+
+// Draw fn
+impl ContainerListPage {
+    fn search_box(&mut self, frame: &mut Frame) {
         let (text, border) = if self.input_mode {
             (
                 self.draft.clone(),
@@ -420,12 +437,12 @@ impl Page for ContainerListPage {
         let block = Block::bordered()
             .title(format!(" Search (/) · {mode} "))
             .border_style(border);
-        let inner = block.inner(search_area);
+        let inner = block.inner(self.search_area);
 
         let text_color = Style::new().fg(self.theme_color.input_cursor);
         frame.render_widget(
             Paragraph::new(text).style(text_color).block(block),
-            search_area,
+            self.search_area,
         );
 
         if self.input_mode {
@@ -433,9 +450,10 @@ impl Page for ContainerListPage {
             let x = (inner.x + w).min(inner.right().saturating_sub(1));
             frame.set_cursor_position((x, inner.y));
         }
+    }
 
-        // ── table ──
-        self.viewport = table_area.height.saturating_sub(3) as usize; // 2 border + 1 header
+    fn draw_table(&mut self, frame: &mut Frame) {
+        self.viewport = self.list_area.height.saturating_sub(3) as usize; // 2 border + 1 header
         let len = self.rows().len();
         self.clamp(len);
 
@@ -455,22 +473,39 @@ impl Page for ContainerListPage {
                     c.id.as_deref()
                         .map(|s| &s[..s.len().min(12)])
                         .unwrap_or("-");
+                // Build a compact, deduplicated port string for the PORTS column.
+                // Entries are keyed by (public, private, protocol); IPv4/IPv6 duplicates collapse.
                 let ports: String = match &c.ports {
-                    Some(p) => p
-                        .iter()
-                        .map(|port| match port.public_port {
-                            Some(pub_p) => format!("{}:{}", pub_p, port.private_port),
-                            None => format!("{}", port.private_port),
-                        })
-                        .collect::<BTreeSet<_>>()
-                        .into_iter()
-                        .collect::<Vec<_>>()
-                        .join(", "),
+                    Some(list) => {
+                        let unique: BTreeSet<(Option<u16>, u16, &str)> = list
+                            .iter()
+                            .map(|p| {
+                                // Default to tcp when Docker omits the type
+                                let proto = match p.typ {
+                                    Some(PortSummaryTypeEnum::UDP) => "udp",
+                                    Some(PortSummaryTypeEnum::SCTP) => "sctp",
+                                    _ => "tcp",
+                                };
+                                (p.public_port, p.private_port, proto)
+                            })
+                            .collect();
+
+                        unique
+                            .into_iter()
+                            .map(|(public, private, proto)| match public {
+                                // Published: host:container/proto
+                                Some(pub_p) => format!("{proto}/{pub_p}:{private}"),
+                                // Exposed only: container/proto
+                                None => format!("{proto}/{private}"),
+                            })
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    }
                     None => String::new(),
                 };
                 Row::new(vec![
-                    Cell::from(name.to_owned()),
                     Cell::from(short_id.to_owned()),
+                    Cell::from(name.to_owned()),
                     Cell::from(c.image.clone().unwrap_or_default()),
                     Cell::from(ports),
                     Cell::from(c.state.map(|s| s.to_string()).unwrap_or_default()),
@@ -479,7 +514,7 @@ impl Page for ContainerListPage {
             })
             .collect();
 
-        let header = Row::new(["NAME", "ID", "IMAGE", "PORT", "STATE", "STATUS"]).style(
+        let header = Row::new(["ID", "NAME", "IMAGE", "PORT", "STATE", "STATUS"]).style(
             Style::new()
                 .fg(self.theme_color.list_header_text)
                 .add_modifier(Modifier::BOLD),
@@ -496,10 +531,10 @@ impl Page for ContainerListPage {
         let table = Table::new(
             body,
             [
-                Constraint::Percentage(20), // NAME
                 Constraint::Length(13),     // ID   (12 chars + 1 padding)
+                Constraint::Percentage(20), // NAME
                 Constraint::Percentage(25), // IMAGE
-                Constraint::Percentage(10), // PORTS
+                Constraint::Percentage(20), // PORTS
                 Constraint::Length(10),     // STATE
                 Constraint::Fill(1),        // STATUS
             ],
@@ -518,6 +553,6 @@ impl Page for ContainerListPage {
         if len > 0 {
             state.select(Some(self.cursor - self.offset));
         }
-        frame.render_stateful_widget(table, table_area, &mut state);
+        frame.render_stateful_widget(table, self.list_area, &mut state);
     }
 }
