@@ -4,10 +4,8 @@ mod shared;
 mod tests;
 mod tuikk_core;
 use crate::{
-    shared::base::icons::Icons,
-    tuikk_core::{
-        app::App, app_services::AppServices, cli::Cli, config::AppConfig,
-        docker_conn::DockerConnection, tui::Tui,
+    shared::base::icons::Icons, tuikk_core::{
+        app::App, app_services::AppServices, cli::{Cli, print_icon_preview}, config::AppConfig, docker_conn::DockerConnection, tui::Tui,
     },
 };
 use clap::Parser;
@@ -38,6 +36,10 @@ async fn main() -> Result<()> {
     }
 
     AppServices::init()?;
+    if args.icon_preview {
+        print_icon_preview();
+        return Ok(());
+    }
     Icons::init(&app_config.icon_set);
 
     let mut tui = Tui::new(tick_rate, frame_rate).mouse(true).paste(true);

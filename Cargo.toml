@@ -18,11 +18,11 @@ clap = { version = "4.6.7", features = [
     "unicode",
     "string",
     "unstable-styles",
+    "env"
 ] }
 color-eyre = "0.6.5"
 crossterm = { version = "0.29.0", features = ["event-stream"] }
 directories = "6.0.0"
-font-kit = "0.14.3"
 futures = "0.3.34"
 futures-util = "0.3.34"
 json5 = "1.3.1"
