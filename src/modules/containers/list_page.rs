@@ -1,5 +1,3 @@
-use std::{collections::BTreeSet, sync::Arc};
-
 use crate::{
     modules::containers::{actions::ContainerAction as CA, container_service::ContainerService},
     shared::base::{
@@ -21,6 +19,8 @@ use ratatui::{
     style::{Modifier, Style, Stylize},
     widgets::{Block, Cell, Paragraph, Row, Table, TableState},
 };
+use ratatui_interact::components::{Button, ButtonState};
+use std::{collections::BTreeSet, sync::Arc};
 pub struct ContainerListPage {
     svc: Arc<ContainerService>,
     tx: Tx,
@@ -38,6 +38,11 @@ pub struct ContainerListPage {
     search_area: Rect,
     list_area: Rect,
     table_state: TableState,
+
+    // button
+    row_button_rects: Vec<(usize, Rect)>,
+    hovered_row: Option<usize>,
+    pressed_row: Option<usize>,
 
     // async
     loading: bool,
@@ -72,6 +77,9 @@ impl ContainerListPage {
             search_area: Rect::default(),
             list_area: Rect::default(),
             table_state: TableState::default(),
+            row_button_rects: Vec::new(),
+            hovered_row: None,
+            pressed_row: None,
             loading: false,
             error: None,
             req_seq: 0,
@@ -453,7 +461,9 @@ impl ContainerListPage {
     }
 
     fn draw_table(&mut self, frame: &mut Frame) {
-        self.viewport = self.list_area.height.saturating_sub(3) as usize; // 2 border + 1 header
+        let [table_area, action_area] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Length(12)]).areas(self.list_area);
+        self.viewport = table_area.height.saturating_sub(3) as usize; // 2 border + 1 header
         let len = self.rows().len();
         self.clamp(len);
 
@@ -553,6 +563,41 @@ impl ContainerListPage {
         if len > 0 {
             state.select(Some(self.cursor - self.offset));
         }
-        frame.render_stateful_widget(table, self.list_area, &mut state);
+        frame.render_stateful_widget(table, table_area, &mut state);
+
+        // Action column: same top and bottom border so body rows line up with the table.
+        let block = Block::bordered().border_style(Style::new().fg(self.theme_color.border));
+        let inner = block.inner(action_area);
+        frame.render_widget(block, action_area);
+
+        // Header line of the action column (same height as the table header).
+        frame.render_widget(
+            Paragraph::new("Action").centered().style(
+                Style::new()
+                    .fg(self.theme_color.list_header_text)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Rect::new(inner.x, inner.y, inner.width, 1),
+        );
+
+        // One button per visible row. Each button occupies exactly one terminal line.
+        self.row_button_rects.clear();
+        let body_top = inner.y + 1;
+        for (i, idx) in (self.offset..len).take(self.viewport).enumerate() {
+            let rect = Rect::new(inner.x, body_top + i as u16, inner.width, 1);
+
+            let style = if self.pressed_row == Some(idx) {
+                Style::new().add_modifier(Modifier::REVERSED)
+            } else if self.hovered_row == Some(idx) {
+                Style::new()
+                    .fg(self.theme_color.border_focus)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::new().fg(self.theme_color.error)
+            };
+
+            frame.render_widget(Paragraph::new("").centered().style(style), rect);
+            self.row_button_rects.push((idx, rect));
+        }
     }
 }

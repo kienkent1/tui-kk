@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 use tuikk_macros::extend_base_err;
 
+use crate::shared::base::icons::IconSet;
 use crate::shared::helpers::ext_log::ResultExt;
 use crate::tuikk_core::docker_conn::DockerConfig;
 use crate::tuikk_core::key_map::KeyMap;
@@ -53,6 +54,7 @@ pub struct AppConfig {
     #[default(ThemeColor::default(None))]
     pub theme_color: ThemeColor,
     pub ui: UiConfig,
+    pub icon_set: IconSet,
 
     // Logging
     #[default("error".to_owned())]

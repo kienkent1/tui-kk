@@ -11,7 +11,7 @@ app_prefix = "tuikk"
 arc-swap = "1.9.2"
 base64 = "0.23.1"
 bollard = "0.21.1"
-clap =  { version = "4.6.7", features = [
+clap = { version = "4.6.7", features = [
     "derive",
     "cargo",
     "wrap_help",
@@ -20,24 +20,25 @@ clap =  { version = "4.6.7", features = [
     "unstable-styles",
 ] }
 color-eyre = "0.6.5"
-crossterm =  { version = "0.29.0", features = ["event-stream"] }
+crossterm = { version = "0.29.0", features = ["event-stream"] }
 directories = "6.0.0"
+font-kit = "0.14.3"
 futures = "0.3.34"
 futures-util = "0.3.34"
 json5 = "1.3.1"
-ratatui =   {version = "0.30.2", features = ["serde", "unstable-widget-ref"] }
+ratatui = { version = "0.30.2", features = ["serde", "unstable-widget-ref"] }
 ratatui-interact = "0.5.3"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_with = "3.24.0"
 signal-hook = "0.4.5"
 smart-default = "0.7.1"
-strum =  { version = "0.28.0", features = ["derive"] }
+strum = { version = "0.28.0", features = ["derive"] }
 thiserror = "2.0.21"
-tokio =  { version = "1.53.2", features = ["full"] } 
+tokio = { version = "1.53.2", features = ["full"] }
 toml = "1.1.8"
 tracing = "0.1.44"
 tracing-appender = "0.2.5"
-tracing-subscriber =  { version = "0.3.23", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 tui-panel-select = "0.2.0"
 tuikk_macros = { path = "./tuikk_macros" }
 

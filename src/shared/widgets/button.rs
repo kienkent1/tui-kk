@@ -90,27 +90,28 @@ impl Button {
 
 impl BaseWidget for Button {
     type Event = ButtonEvent;
-    fn handle_key(&mut self, key: KeyEvent) -> Option<Self::Event> {
+    fn handle_key(&mut self, key: KeyEvent) -> Option<ButtonEvent> {
         None
     }
-    fn handle_mouse(&mut self, area: Rect, mouse: MouseEvent) -> Option<Self::Event> {
+    fn handle_mouse(&mut self, area: Rect, mouse: MouseEvent) -> Option<ButtonEvent> {
         let inside = area.contains(Position::new(mouse.column, mouse.row));
         match mouse.kind {
             MouseEventKind::Moved => {
                 self.hovered = inside;
-                None
+                Some(ButtonEvent::Hovered)
             }
             // Press: start the "active" state. No click yet.
             MouseEventKind::Down(MouseButton::Left) => {
                 if inside {
                     self.pressed = true;
+                    return Some(ButtonEvent::Focused);
                 }
                 None
             }
             // Drag: the cursor may leave the button while the button is held.
             MouseEventKind::Drag(MouseButton::Left) => {
                 self.hovered = inside;
-                None
+                Some(ButtonEvent::Hovered)
             }
             // Release: click only if the press started here and ended here.
             MouseEventKind::Up(MouseButton::Left) => {
