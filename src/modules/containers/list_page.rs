@@ -4,6 +4,7 @@ use crate::{
         base_action::Action,
         base_component::{Page, Tx},
         base_filter::BaseFilter,
+        icons::Icons,
     },
     tuikk_core::{
         click_tracker::{ClickTracker, Clicks},
@@ -11,11 +12,11 @@ use crate::{
         themes::ThemeColor,
     },
 };
-use bollard::plugin::{ContainerSummary, PortSummaryTypeEnum};
+use bollard::plugin::{ContainerSummary, ContainerSummaryStateEnum, PortSummaryTypeEnum};
 use crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::{
     Frame,
-    layout::{Constraint, Layout, Position, Rect},
+    layout::{Constraint, Flex, Layout, Position, Rect},
     style::{Modifier, Style, Stylize},
     widgets::{Block, Cell, Paragraph, Row, Table, TableState},
 };
@@ -40,7 +41,7 @@ pub struct ContainerListPage {
     table_state: TableState,
 
     // button
-    row_button_rects: Vec<(usize, Rect)>,
+    row_button_rects: Vec<((usize, Rect), (usize, Rect))>,
     hovered_row: Option<usize>,
     pressed_row: Option<usize>,
 
@@ -554,10 +555,9 @@ impl ContainerListPage {
         .row_highlight_style(
             Style::new()
                 .fg(self.theme_color.border)
-                .bg(self.theme_color.list_header_text)
+                .bg(self.theme_color.text_selected)
                 .add_modifier(Modifier::REVERSED),
-        )
-        .row_highlight_style(Style::new().bg(self.theme_color.sidebar_active_bg));
+        );
 
         let mut state = TableState::default();
         if len > 0 {
@@ -580,24 +580,65 @@ impl ContainerListPage {
             Rect::new(inner.x, inner.y, inner.width, 1),
         );
 
+        // Snapshot the running state of the visible rows so `rows` is not used past this point.
+        // Index `i` matches the visible row order (same skip/take as `body`).
+        let is_running: Vec<bool> = rows
+            .iter()
+            .skip(self.offset)
+            .take(self.viewport)
+            .map(|c| c.state == Some(ContainerSummaryStateEnum::RUNNING))
+            .collect();
         // One button per visible row. Each button occupies exactly one terminal line.
         self.row_button_rects.clear();
         let body_top = inner.y + 1;
         for (i, idx) in (self.offset..len).take(self.viewport).enumerate() {
-            let rect = Rect::new(inner.x, body_top + i as u16, inner.width, 1);
+            let row_rect = Rect::new(inner.x, body_top + i as u16, inner.width, 1);
+            let [state_rect, remove_rect] =
+                Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)])
+                    .flex(Flex::SpaceEvenly)
+                    .areas(row_rect);
 
-            let style = if self.pressed_row == Some(idx) {
-                Style::new().add_modifier(Modifier::REVERSED)
+            let (remove_style, state_style) = if self.pressed_row == Some(idx) {
+                (
+                    Style::new().add_modifier(Modifier::REVERSED),
+                    Style::new().add_modifier(Modifier::REVERSED),
+                )
             } else if self.hovered_row == Some(idx) {
-                Style::new()
-                    .fg(self.theme_color.border_focus)
-                    .add_modifier(Modifier::BOLD)
+                (
+                    Style::new()
+                        .fg(self.theme_color.border_focus)
+                        .add_modifier(Modifier::BOLD),
+                    Style::new()
+                        .fg(self.theme_color.border_focus)
+                        .add_modifier(Modifier::BOLD),
+                )
             } else {
-                Style::new().fg(self.theme_color.error)
+                (
+                    Style::new().fg(self.theme_color.error),
+                    Style::new().fg(self.theme_color.text),
+                )
             };
 
-            frame.render_widget(Paragraph::new("").centered().style(style), rect);
-            self.row_button_rects.push((idx, rect));
+            // Running container -> show Stop, otherwise -> show Start
+            let state_icon: &str = if is_running.get(i).copied().unwrap_or(false) {
+                Icons::Stop.glyph()
+            } else {
+                Icons::Start.glyph()
+            };
+
+            frame.render_widget(
+                Paragraph::new(state_icon).centered().style(state_style),
+                state_rect,
+            );
+            frame.render_widget(
+                Paragraph::new(Icons::Remove.glyph())
+                    .centered()
+                    .style(remove_style),
+                remove_rect,
+            );
+
+            self.row_button_rects
+                .push(((idx, state_rect), (idx, remove_rect)));
         }
     }
 }

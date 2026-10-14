@@ -197,9 +197,9 @@ impl ThemeColor {
             border_focus: Color::Rgb(82, 139, 255), // #528BFF — One Dark blue focus
 
             // Text
-            text: Color::Rgb(191, 189, 182),          // #bfbdb6
+            text: Color::Rgb(112, 122, 140),          // #707a8c
             text_muted: Color::Rgb(90, 99, 120),      // #5a6378
-            text_selected: Color::Rgb(191, 189, 182), // same as text
+            text_selected: Color::Rgb(204, 202, 194), // #cccac2
 
             // Input
             input_bg: Color::Rgb(16, 20, 28),           // #10141c

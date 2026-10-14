@@ -1,8 +1,9 @@
-#theme = "dark"
-theme = "light"
-log_level = "debug" #trace, debug, info, warn, error(default)
+theme = "dark"
+#theme = "light"
+log_level = "debug"  #trace, debug, info, warn, error(default)
 query_mode = "local"
 log_dir = "./logs"
+icon_set = "nerd"
 
 [docker]
 default_conn_type = "socket" # socket(defalut), local, http
