@@ -175,6 +175,28 @@ pub struct ThemeColor {
     /// Description text next to the key label (e.g. "Quit")
     #[default(Color::DarkGray)]
     pub keybind_desc: Color,
+
+    // ── Action buttons (foreground only, no background) ─────
+    #[default(Color::Rgb(112, 191, 86))]
+    pub btn_start_fg: Color,
+    #[default(Color::Rgb(148, 207, 128))]
+    pub btn_start_fg_hover: Color,
+    #[default(Color::Rgb(184, 224, 168))]
+    pub btn_start_fg_press: Color,
+
+    #[default(Color::Rgb(255, 180, 84))]
+    pub btn_stop_fg: Color,
+    #[default(Color::Rgb(255, 199, 127))]
+    pub btn_stop_fg_hover: Color,
+    #[default(Color::Rgb(255, 217, 168))]
+    pub btn_stop_fg_press: Color,
+
+    #[default(Color::Rgb(242, 109, 120))]
+    pub btn_remove_fg: Color,
+    #[default(Color::Rgb(245, 146, 154))]
+    pub btn_remove_fg_hover: Color,
+    #[default(Color::Rgb(249, 184, 190))]
+    pub btn_remove_fg_press: Color,
 }
 
 impl ThemeColor {
@@ -261,6 +283,21 @@ impl ThemeColor {
             keybind_bar_bg: Color::Rgb(1, 1, 2),   // #010102
             keybind_key: Color::Rgb(82, 139, 255), // #528BFF
             keybind_desc: Color::Rgb(90, 99, 120), // #5a6378
+
+            // Action buttons — start
+            btn_start_fg: Color::Rgb(112, 191, 86), // #70bf56
+            btn_start_fg_hover: Color::Rgb(148, 207, 128), // #94cf80
+            btn_start_fg_press: Color::Rgb(184, 224, 168), // #b8e0a8
+
+            // Action buttons — stop
+            btn_stop_fg: Color::Rgb(255, 180, 84), // #ffb454
+            btn_stop_fg_hover: Color::Rgb(255, 199, 127), // #ffc77f
+            btn_stop_fg_press: Color::Rgb(255, 217, 168), // #ffd9a8
+
+            // Action buttons — remove
+            btn_remove_fg: Color::Rgb(242, 109, 120), // #f26d78
+            btn_remove_fg_hover: Color::Rgb(245, 146, 154), // #f5929a
+            btn_remove_fg_press: Color::Rgb(249, 184, 190), // #f9b8be
         }
     }
 
@@ -340,6 +377,21 @@ impl ThemeColor {
             keybind_bar_bg: Color::Rgb(235, 238, 240), // #ebeef0
             keybind_key: Color::Rgb(82, 111, 255),     // #526fff
             keybind_desc: Color::Rgb(130, 142, 159),   // #828e9f
+
+            // Action buttons — start
+            btn_start_fg: Color::Rgb(67, 118, 42), // #43762a
+            btn_start_fg_hover: Color::Rgb(47, 90, 28), // #2f5a1c
+            btn_start_fg_press: Color::Rgb(30, 61, 16), // #1e3d10
+
+            // Action buttons — stop
+            btn_stop_fg: Color::Rgb(141, 98, 0),       // #8d6200
+            btn_stop_fg_hover: Color::Rgb(110, 76, 0), // #6e4c00
+            btn_stop_fg_press: Color::Rgb(74, 51, 0),  // #4a3300
+
+            // Action buttons — remove
+            btn_remove_fg: Color::Rgb(179, 62, 62), // #b33e3e
+            btn_remove_fg_hover: Color::Rgb(143, 46, 46), // #8f2e2e
+            btn_remove_fg_press: Color::Rgb(102, 30, 30), // #661e1e
         }
     }
 }

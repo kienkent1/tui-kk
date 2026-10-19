@@ -1,6 +1,6 @@
-theme = "dark"
-#theme = "light"
-log_level = "debug"  #trace, debug, info, warn, error(default)
+#theme = "dark"
+theme = "light"
+log_level = "warn"   #trace, debug, info, warn, error(default)
 query_mode = "local"
 log_dir = "./logs"
 icon_set = "nerd"

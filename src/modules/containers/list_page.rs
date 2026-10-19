@@ -1,10 +1,17 @@
 use crate::{
-    modules::containers::{actions::ContainerAction as CA, container_service::ContainerService},
-    shared::base::{
-        base_action::Action,
-        base_component::{Page, Tx},
-        base_filter::BaseFilter,
-        icons::Icons,
+    modules::containers::{
+        actions::{ButtonAction, ContainerAction as CA},
+        container_dto::{RowButton, RowTarget},
+        container_service::ContainerService,
+    },
+    shared::{
+        base::{
+            base_action::Action,
+            base_component::{Page, Tx},
+            base_filter::BaseFilter,
+            icons::Icons,
+        },
+        helpers::get_color_helpers::BtnPalette,
     },
     tuikk_core::{
         click_tracker::{ClickTracker, Clicks},
@@ -17,7 +24,7 @@ use crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEvent, MouseEventKin
 use ratatui::{
     Frame,
     layout::{Constraint, Flex, Layout, Position, Rect},
-    style::{Modifier, Style, Stylize},
+    style::{Color, Modifier, Style, Stylize},
     widgets::{Block, Cell, Paragraph, Row, Table, TableState},
 };
 use ratatui_interact::components::{Button, ButtonState};
@@ -41,9 +48,9 @@ pub struct ContainerListPage {
     table_state: TableState,
 
     // button
-    row_button_rects: Vec<((usize, Rect), (usize, Rect))>,
-    hovered_row: Option<usize>,
-    pressed_row: Option<usize>,
+    row_buttons: Vec<RowButton>,
+    hovered: Option<RowTarget>,
+    pressed: Option<RowTarget>,
 
     // async
     loading: bool,
@@ -78,9 +85,9 @@ impl ContainerListPage {
             search_area: Rect::default(),
             list_area: Rect::default(),
             table_state: TableState::default(),
-            row_button_rects: Vec::new(),
-            hovered_row: None,
-            pressed_row: None,
+            row_buttons: Vec::new(),
+            hovered: None,
+            pressed: None,
             loading: false,
             error: None,
             req_seq: 0,
@@ -220,6 +227,28 @@ impl ContainerListPage {
         self.filter.search = None;
         self.on_filter_change();
     }
+
+    fn click_button_event(&mut self, pos: &Position) -> Option<RowTarget> {
+        self.row_buttons
+            .iter()
+            .find(|b| b.rect.contains(*pos))
+            .map(|b| b.target)
+    }
+
+    fn handle_button_event(&mut self, target: RowTarget) -> Option<Action> {
+        let rows = self.rows();
+        let c = rows.get(target.row)?;
+        let id = c.id.clone()?;
+        let running = c.state == Some(ContainerSummaryStateEnum::RUNNING);
+
+        match target.action {
+            ButtonAction::ToggleState if running => {
+                Some(Action::Containers(CA::ToggleState(id, false)))
+            }
+            ButtonAction::ToggleState => Some(Action::Containers(CA::ToggleState(id, true))),
+            ButtonAction::Remove => Some(Action::Containers(CA::Remove(id))),
+        }
+    }
 }
 impl Page for ContainerListPage {
     fn scope(&self) -> KeyScope {
@@ -325,8 +354,19 @@ impl Page for ContainerListPage {
     }
     fn handle_mouse_event(&mut self, mouse: MouseEvent) -> Option<Action> {
         let pos = Position::new(mouse.column, mouse.row);
+        let button_clicked = self.click_button_event(&pos);
         match mouse.kind {
             MouseEventKind::Down(MouseButton::Left) => {
+                // Buttons first: the action column lives inside `list_area`,
+                // so without this the click would fall into the row-select logic.
+                if let Some(target) = button_clicked {
+                    self.pressed = Some(target);
+                    self.cursor = target.row;
+                    self.selected_id = self.row_id(target.row);
+                    return None;
+                }
+                self.pressed = None;
+
                 // Click on the search box.
                 if self.search_area.contains(pos) {
                     if !self.input_mode {
@@ -379,6 +419,16 @@ impl Page for ContainerListPage {
                 return None;
             }
 
+            MouseEventKind::Up(MouseButton::Left) => {
+                let pressed = self.pressed.take();
+                // Fire only if released on the same button that was pressed
+                if let (Some(p), Some(h)) = (pressed, button_clicked) {
+                    if p == h {
+                        return self.handle_button_event(h);
+                    }
+                }
+            }
+
             MouseEventKind::ScrollDown if self.list_area.contains(pos) => {
                 self.move_cursor(1);
                 return None;
@@ -387,6 +437,7 @@ impl Page for ContainerListPage {
                 self.move_cursor(-1);
                 return None;
             }
+            MouseEventKind::Moved => self.hovered = button_clicked,
             _ => {}
         }
 
@@ -589,56 +640,74 @@ impl ContainerListPage {
             .map(|c| c.state == Some(ContainerSummaryStateEnum::RUNNING))
             .collect();
         // One button per visible row. Each button occupies exactly one terminal line.
-        self.row_button_rects.clear();
+        self.row_buttons.clear();
         let body_top = inner.y + 1;
         for (i, idx) in (self.offset..len).take(self.viewport).enumerate() {
             let row_rect = Rect::new(inner.x, body_top + i as u16, inner.width, 1);
-            let [state_rect, remove_rect] =
+            let [state_cell, remove_cell] =
                 Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)])
                     .flex(Flex::SpaceEvenly)
                     .areas(row_rect);
 
-            let (remove_style, state_style) = if self.pressed_row == Some(idx) {
-                (
-                    Style::new().add_modifier(Modifier::REVERSED),
-                    Style::new().add_modifier(Modifier::REVERSED),
-                )
-            } else if self.hovered_row == Some(idx) {
-                (
-                    Style::new()
-                        .fg(self.theme_color.border_focus)
-                        .add_modifier(Modifier::BOLD),
-                    Style::new()
-                        .fg(self.theme_color.border_focus)
-                        .add_modifier(Modifier::BOLD),
-                )
-            } else {
-                (
-                    Style::new().fg(self.theme_color.error),
-                    Style::new().fg(self.theme_color.text),
-                )
+            let state_target = RowTarget {
+                row: idx,
+                action: ButtonAction::ToggleState,
+            };
+            let remove_target = RowTarget {
+                row: idx,
+                action: ButtonAction::Remove,
             };
 
+            let remove_style = self.theme_color.btn_remove();
             // Running container -> show Stop, otherwise -> show Start
-            let state_icon: &str = if is_running.get(i).copied().unwrap_or(false) {
-                Icons::Stop.glyph()
+            let (state_icon, state_palette) = if is_running.get(i).copied().unwrap_or(false) {
+                (Icons::Stop.glyph(), self.theme_color.btn_stop())
             } else {
-                Icons::Start.glyph()
+                (Icons::Start.glyph(), self.theme_color.btn_start())
             };
+            let remove_icon = Icons::Remove.glyph();
 
+            let state_rect = Self::button_rect(state_cell, state_icon);
+            let remove_rect = Self::button_rect(remove_cell, remove_icon);
+            // Each button reads its OWN target, so hover/press never leak to the neighbour.
             frame.render_widget(
-                Paragraph::new(state_icon).centered().style(state_style),
+                Paragraph::new(format!(" {state_icon} "))
+                    .style(self.button_style(state_target, state_palette)),
                 state_rect,
             );
             frame.render_widget(
-                Paragraph::new(Icons::Remove.glyph())
-                    .centered()
-                    .style(remove_style),
+                Paragraph::new(format!(" {remove_icon} "))
+                    .style(self.button_style(remove_target, self.theme_color.btn_remove())),
                 remove_rect,
             );
 
-            self.row_button_rects
-                .push(((idx, state_rect), (idx, remove_rect)));
+            self.row_buttons.push(RowButton {
+                target: state_target,
+                rect: state_rect,
+            });
+            self.row_buttons.push(RowButton {
+                target: remove_target,
+                rect: remove_rect,
+            });
+        }
+    }
+
+    /// Shrink `cell` to the label width plus one space of padding on each side, centered.
+    fn button_rect(cell: Rect, label: &str) -> Rect {
+        let w = (ratatui::text::Line::from(label).width() as u16 + 2).min(cell.width);
+        let [rect] = Layout::horizontal([Constraint::Length(w)])
+            .flex(Flex::Center)
+            .areas(cell);
+        rect
+    }
+
+    fn button_style(&self, target: RowTarget, p: BtnPalette) -> Style {
+        if self.pressed == Some(target) {
+            Style::new().fg(p.fg_press).add_modifier(Modifier::BOLD)
+        } else if self.hovered == Some(target) {
+            Style::new().fg(p.fg_hover).add_modifier(Modifier::BOLD)
+        } else {
+            Style::new().fg(p.fg)
         }
     }
 }

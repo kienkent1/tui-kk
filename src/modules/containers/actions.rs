@@ -6,7 +6,9 @@ pub enum ContainerAction {
     Refresh,
     Loaded(u64, Result<Vec<ContainerSummary>, String>),
     OpenDetail(String),
-    DetailLoaded(String, Result<Box<ContainerInspectResponse>, String>),
+    DetailLoaded(String, Result<ContainerInspectResponse, String>),
+    ToggleState(String, bool),
+    Remove(String),
     BackToList,
 
     SearchPush(char),
@@ -14,4 +16,10 @@ pub enum ContainerAction {
     SearchClear,
     CycleSort,
     ToggleOrder,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ButtonAction {
+    ToggleState,
+    Remove,
 }

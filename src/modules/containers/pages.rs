@@ -32,6 +32,7 @@ pub struct ContainerPage {
     tx: Tx,
     tasks: Vec<JoinHandle<()>>,
     svc: Arc<ContainerService>,
+    theme_color: ThemeColor,
 }
 
 impl ContainerPage {
@@ -49,6 +50,7 @@ impl ContainerPage {
             tx: tx,
             tasks: Vec::new(),
             svc: svc.clone(),
+            theme_color: *theme_color,
         }
     }
 
@@ -112,7 +114,12 @@ impl Page for ContainerPage {
 
     fn update(&mut self, action: &Action) -> bool {
         if let Action::Containers(ContainerAction::OpenDetail(id)) = action {
-            let detail = ContainerDetailPage::new(id.clone(), self.svc.clone(), self.tx.clone());
+            let detail = ContainerDetailPage::new(
+                id.clone(),
+                self.svc.clone(),
+                self.tx.clone(),
+                &self.theme_color,
+            );
             self.navigate(ContainerRoute::Detail(detail));
             return true;
         }
