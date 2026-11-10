@@ -69,8 +69,12 @@ pub fn draw(
         let remove_rect = button_rect(remove_cell, remove_icon);
 
         frame.render_widget(
-            Paragraph::new(format!(" {state_icon} "))
-                .style(button_style(state_target, hovered, pressed, state_palette)),
+            Paragraph::new(format!(" {state_icon} ")).style(button_style(
+                state_target,
+                hovered,
+                pressed,
+                state_palette,
+            )),
             state_rect,
         );
         frame.render_widget(
@@ -116,4 +120,3 @@ fn button_style(
         Style::new().fg(p.fg)
     }
 }
-

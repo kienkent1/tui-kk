@@ -10,4 +10,3 @@ pub const KB: f64 = 1024.0;
 pub const MB: f64 = KB * 1024.0;
 pub const GB: f64 = MB * 1024.0;
 pub const TB: f64 = GB * 1024.0;
-

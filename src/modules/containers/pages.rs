@@ -5,10 +5,8 @@ use ratatui::{Frame, layout::Rect};
 
 use crate::{
     modules::containers::{
-        actions::ContainerAction,
-        container_service::ContainerService,
-        detail_page::ContainerDetailPage,
-        list_page::ContainerListPage,
+        actions::ContainerAction, container_service::ContainerService,
+        detail_page::ContainerDetailPage, list_page::ContainerListPage,
     },
     shared::base::{
         base_action::Action,

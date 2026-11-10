@@ -89,11 +89,7 @@ fn draw_container_resource_table(
         .skip(offset)
         .take(viewport)
         .map(|c| {
-            let mem_str = format!(
-                "{} ({:.1}%)",
-                format_bytes(c.mem_usage),
-                c.mem_percent
-            );
+            let mem_str = format!("{} ({:.1}%)", format_bytes(c.mem_usage), c.mem_percent);
             let disk_str = format!(
                 "{} / {}",
                 format_bytes(c.storage_rw),

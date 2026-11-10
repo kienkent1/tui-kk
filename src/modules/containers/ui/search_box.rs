@@ -47,4 +47,3 @@ pub fn draw(
         frame.set_cursor_position((x, inner.y));
     }
 }
-

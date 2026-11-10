@@ -85,4 +85,3 @@ pub fn draw(
     }
     frame.render_stateful_widget(table, area, &mut state);
 }
-

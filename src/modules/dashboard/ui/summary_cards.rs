@@ -66,7 +66,10 @@ fn draw_engine_card(
     let lines = vec![
         Line::from(vec![
             Span::styled(" Version: ", Style::new().fg(theme.text_muted)),
-            Span::styled(ver, Style::new().fg(theme.text).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                ver,
+                Style::new().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
             Span::styled("  OS: ", Style::new().fg(theme.text_muted)),
             Span::styled(os, Style::new().fg(theme.text)),
         ]),
@@ -134,18 +137,10 @@ fn draw_containers_card(
     frame.render_widget(Paragraph::new(lines).block(block), area);
 }
 
-fn draw_disk_card(
-    frame: &mut Frame,
-    area: Rect,
-    snapshot: &DashboardSnapshot,
-    theme: &ThemeColor,
-) {
+fn draw_disk_card(frame: &mut Frame, area: Rect, snapshot: &DashboardSnapshot, theme: &ThemeColor) {
     let st = &snapshot.storage;
     let block = Block::bordered()
-        .title(format!(
-            " Disk Usage ({}) ",
-            format_bytes(st.total_used())
-        ))
+        .title(format!(" Disk Usage ({}) ", format_bytes(st.total_used())))
         .border_type(BorderType::Rounded)
         .border_style(Style::new().fg(theme.border));
 
@@ -178,4 +173,3 @@ fn draw_disk_card(
 
     frame.render_widget(Paragraph::new(lines).block(block), area);
 }
-

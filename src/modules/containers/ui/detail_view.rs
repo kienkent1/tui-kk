@@ -7,10 +7,7 @@ use ratatui::{
     widgets::{Block, BorderType, Paragraph, Tabs},
 };
 
-use crate::{
-    modules::containers::constants::ContainerDetailTab,
-    tuikk_core::themes::ThemeColor,
-};
+use crate::{modules::containers::constants::ContainerDetailTab, tuikk_core::themes::ThemeColor};
 
 pub fn draw(
     frame: &mut Frame,
@@ -80,7 +77,10 @@ fn draw_header(
     let lines = vec![
         Line::from(vec![
             Span::styled(" Image:  ", Style::new().fg(theme.text_muted)),
-            Span::styled(image, Style::new().fg(theme.text).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                image,
+                Style::new().fg(theme.text).add_modifier(Modifier::BOLD),
+            ),
             Span::styled("    State: ", Style::new().fg(theme.text_muted)),
             Span::styled(
                 status,
@@ -99,19 +99,17 @@ fn draw_header(
                     .unwrap_or_else(|| "-".to_owned()),
                 Style::new().fg(theme.text),
             ),
-            Span::styled("    [Esc: Back | 1-4: Tab | j/k: Scroll]", Style::new().fg(theme.text_muted)),
+            Span::styled(
+                "    [Esc: Back | 1-4: Tab | j/k: Scroll]",
+                Style::new().fg(theme.text_muted),
+            ),
         ]),
     ];
 
     frame.render_widget(Paragraph::new(lines).block(block), area);
 }
 
-fn draw_tabs(
-    frame: &mut Frame,
-    area: Rect,
-    active_tab: ContainerDetailTab,
-    theme: &ThemeColor,
-) {
+fn draw_tabs(frame: &mut Frame, area: Rect, active_tab: ContainerDetailTab, theme: &ThemeColor) {
     let titles: Vec<Line> = ContainerDetailTab::ALL
         .iter()
         .map(|t| Line::from(t.title()))
@@ -186,17 +184,16 @@ fn build_overview_text(c: &ContainerInspectResponse) -> String {
         "Driver:      {}",
         c.driver.as_deref().unwrap_or("-")
     ));
-    out.push(format!(
-        "RestartCnt:  {}",
-        c.restart_count.unwrap_or(0)
-    ));
+    out.push(format!("RestartCnt:  {}", c.restart_count.unwrap_or(0)));
 
     if let Some(st) = &c.state {
         out.push(String::new());
         out.push("── State ──".to_owned());
         out.push(format!(
             "  Status:     {}",
-            st.status.map(|s| s.to_string()).unwrap_or_else(|| "-".to_owned())
+            st.status
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| "-".to_owned())
         ));
         out.push(format!("  Running:    {}", st.running.unwrap_or(false)));
         out.push(format!("  Pid:        {}", st.pid.unwrap_or(0)));
@@ -288,4 +285,3 @@ fn build_env_text(c: &ContainerInspectResponse) -> String {
     }
     envs.join("\n")
 }
-

@@ -38,7 +38,10 @@ fn metric_history_ring_buffer_and_clamping() {
     h.push(50.0, 60.0, 200.0);
     h.push(120.0, -5.0, -10.0); // clamped to 100.0, 0.0, 0.0
 
-    assert_eq!(h.cpu_dataset(), vec![(0.0, 10.0), (1.0, 50.0), (2.0, 100.0)]);
+    assert_eq!(
+        h.cpu_dataset(),
+        vec![(0.0, 10.0), (1.0, 50.0), (2.0, 100.0)]
+    );
     assert_eq!(h.mem_dataset(), vec![(0.0, 20.0), (1.0, 60.0), (2.0, 0.0)]);
     assert_eq!(
         h.storage_dataset(),
@@ -47,7 +50,10 @@ fn metric_history_ring_buffer_and_clamping() {
 
     // Pushing a 4th item evicts the oldest
     h.push(30.0, 40.0, 300.0);
-    assert_eq!(h.cpu_dataset(), vec![(0.0, 50.0), (1.0, 100.0), (2.0, 30.0)]);
+    assert_eq!(
+        h.cpu_dataset(),
+        vec![(0.0, 50.0), (1.0, 100.0), (2.0, 30.0)]
+    );
 }
 
 #[test]
@@ -251,4 +257,3 @@ fn sidebar_navigation_and_mouse_click() {
     let ev = sb.handle_mouse(area, click_containers);
     assert_eq!(ev, Some(SideBarEvent::NavigatePage(Route::Containers)));
 }
-

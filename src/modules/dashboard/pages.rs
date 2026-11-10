@@ -242,4 +242,3 @@ impl Page for DashboardPage {
         );
     }
 }
-

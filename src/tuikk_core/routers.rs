@@ -7,7 +7,9 @@ use ratatui::{
 };
 
 use crate::{
-    modules::{containers::pages::ContainerPage, dashboard::pages::DashboardPage},
+    modules::{
+        containers::pages::ContainerPage, dashboard::pages::DashboardPage, images::pages::ImagePage,
+    },
     shared::{
         base::{
             base_action::Action,
@@ -49,6 +51,15 @@ impl Router {
         pages.insert(
             Route::Containers,
             Box::new(ContainerPage::new(
+                services,
+                tx.clone(),
+                &app_config.theme_color,
+            )),
+        );
+
+        pages.insert(
+            Route::Images,
+            Box::new(ImagePage::new(
                 services,
                 tx.clone(),
                 &app_config.theme_color,
@@ -131,25 +142,11 @@ impl Router {
     }
 
     pub fn next_route(&self) -> Route {
-        let candidate = self.sidebar.next_route();
-        if self.pages.contains_key(&candidate) {
-            candidate
-        } else if self.current == Route::Dashboard {
-            Route::Containers
-        } else {
-            Route::Dashboard
-        }
+        self.sidebar.next_route()
     }
 
     pub fn prev_route(&self) -> Route {
-        let candidate = self.sidebar.prev_route();
-        if self.pages.contains_key(&candidate) {
-            candidate
-        } else if self.current == Route::Dashboard {
-            Route::Containers
-        } else {
-            Route::Dashboard
-        }
+        self.sidebar.prev_route()
     }
 
     pub fn tick(&mut self) -> bool {

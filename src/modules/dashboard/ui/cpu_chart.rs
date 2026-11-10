@@ -80,13 +80,8 @@ pub fn draw(
             Axis::default()
                 .style(Style::new().fg(theme.text_muted))
                 .bounds([0.0, 100.0])
-                .labels(vec![
-                    Span::raw("0%"),
-                    Span::raw("50%"),
-                    Span::raw("100%"),
-                ]),
+                .labels(vec![Span::raw("0%"), Span::raw("50%"), Span::raw("100%")]),
         );
 
     frame.render_widget(chart, chart_area);
 }
-

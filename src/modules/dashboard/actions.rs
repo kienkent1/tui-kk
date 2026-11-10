@@ -7,4 +7,3 @@ pub enum DashboardAction {
     Refresh,
     Loaded(u64, Result<DashboardSnapshot, String>),
 }
-

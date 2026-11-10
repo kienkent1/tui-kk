@@ -1,5 +1,8 @@
 use crate::{
-    modules::{containers::actions::ContainerAction, dashboard::actions::DashboardAction},
+    modules::{
+        containers::actions::ContainerAction, dashboard::actions::DashboardAction,
+        images::actions::ImageAction,
+    },
     tuikk_core::route::Route,
 };
 use serde::{Deserialize, Serialize};
@@ -42,4 +45,5 @@ pub enum Action {
     // page action
     Dashboard(DashboardAction),
     Containers(ContainerAction),
+    Images(ImageAction),
 }

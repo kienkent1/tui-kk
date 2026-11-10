@@ -82,7 +82,10 @@ fn detail_tab_cycles_forward_and_backward() {
     assert_eq!(tab.next(), ContainerDetailTab::NetworkMounts);
     assert_eq!(tab.next().next(), ContainerDetailTab::Env);
     assert_eq!(tab.next().next().next(), ContainerDetailTab::RawJson);
-    assert_eq!(tab.next().next().next().next(), ContainerDetailTab::Overview);
+    assert_eq!(
+        tab.next().next().next().next(),
+        ContainerDetailTab::Overview
+    );
     assert_eq!(tab.prev(), ContainerDetailTab::RawJson);
 }
 
@@ -183,4 +186,3 @@ fn list_page_cursor_clamping_and_commands() {
         .collect();
     assert_eq!(names, vec!["api-backend", "db-postgres", "web-nginx"]);
 }
-
