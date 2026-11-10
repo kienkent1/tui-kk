@@ -2,12 +2,18 @@ use std::{cmp::Ordering, collections::HashMap, sync::Arc};
 
 use bollard::{
     Docker,
-    models::{ImageInspect, ImageSummary},
-    query_parameters::{ListImagesOptions, PruneImagesOptions, RemoveImageOptions},
+    models::{ContainerCreateBody, HostConfig, ImageInspect, ImageSummary, PortBinding, PortMap},
+    query_parameters::{
+        CreateContainerOptionsBuilder, ListImagesOptions, PruneImagesOptions, RemoveImageOptions,
+        StartContainerOptions,
+    },
 };
 
 use crate::{
-    modules::images::{constants::ImageSort, image_dto::parse_repo_tag},
+    modules::images::{
+        constants::ImageSort,
+        image_dto::{RunImageRequest, parse_repo_tag},
+    },
     shared::{
         base::{base_err::BaseErr, base_filter::BaseFilter},
         helpers::ext_log::ResultExt,
@@ -107,6 +113,93 @@ impl ImageService {
             .map_err(BaseErr::from)
             .log_err()?;
         Ok(res.space_reclaimed.unwrap_or(0).max(0) as u64)
+    }
+
+    /// Create and immediately start a new container from an image using the given `RunImageRequest`.
+    pub async fn run_image(&self, req: &RunImageRequest) -> Result<String, BaseErr> {
+        let options = req
+            .container_name
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(|name| {
+                CreateContainerOptionsBuilder::new()
+                    .name(name.trim_start_matches('/'))
+                    .build()
+            });
+
+        let body = Self::build_container_create_body(req);
+        let created = self
+            .conn
+            .create_container(options, body)
+            .await
+            .map_err(BaseErr::from)
+            .log_err()?;
+
+        self.conn
+            .start_container(&created.id, None::<StartContainerOptions>)
+            .await
+            .map_err(BaseErr::from)
+            .log_err()?;
+
+        Ok(created.id)
+    }
+
+    /// Pure helper to construct `ContainerCreateBody` from `RunImageRequest`.
+    pub fn build_container_create_body(req: &RunImageRequest) -> ContainerCreateBody {
+        let env = if req.env_vars.is_empty() {
+            None
+        } else {
+            Some(req.env_vars.iter().map(|e| e.to_docker_env()).collect())
+        };
+
+        let mut exposed_ports: Vec<String> = Vec::new();
+        let mut port_bindings: PortMap = HashMap::new();
+
+        for (host_port, container_port) in &req.ports {
+            if !exposed_ports.contains(container_port) {
+                exposed_ports.push(container_port.clone());
+            }
+            let entry = port_bindings
+                .entry(container_port.clone())
+                .or_insert_with(|| Some(Vec::new()));
+            if let Some(bindings) = entry {
+                bindings.push(PortBinding {
+                    host_ip: Some("0.0.0.0".to_owned()),
+                    host_port: Some(host_port.clone()),
+                });
+            }
+        }
+
+        let host_config = if !port_bindings.is_empty() || !req.volumes.is_empty() {
+            Some(HostConfig {
+                port_bindings: if port_bindings.is_empty() {
+                    None
+                } else {
+                    Some(port_bindings)
+                },
+                binds: if req.volumes.is_empty() {
+                    None
+                } else {
+                    Some(req.volumes.clone())
+                },
+                ..Default::default()
+            })
+        } else {
+            None
+        };
+
+        ContainerCreateBody {
+            image: Some(req.image.clone()),
+            env,
+            exposed_ports: if exposed_ports.is_empty() {
+                None
+            } else {
+                Some(exposed_ports)
+            },
+            host_config,
+            ..Default::default()
+        }
     }
 }
 

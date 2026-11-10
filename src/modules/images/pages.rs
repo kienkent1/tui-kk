@@ -6,7 +6,7 @@ use ratatui::{Frame, layout::Rect};
 use crate::{
     modules::images::{
         actions::ImageAction, detail_page::ImageDetailPage, image_service::ImageService,
-        list_page::ImageListPage,
+        list_page::ImageListPage, run_page::ImageRunPage,
     },
     shared::base::{
         base_action::Action,
@@ -23,6 +23,7 @@ use crate::{
 enum ImageRoute {
     List,
     Detail(ImageDetailPage),
+    Run(ImageRunPage),
 }
 
 pub struct ImagePage {
@@ -55,6 +56,7 @@ impl ImagePage {
         match &self.route {
             ImageRoute::List => &self.list,
             ImageRoute::Detail(p) => p,
+            ImageRoute::Run(p) => p,
         }
     }
 
@@ -62,6 +64,7 @@ impl ImagePage {
         match &mut self.route {
             ImageRoute::List => &mut self.list,
             ImageRoute::Detail(page) => page,
+            ImageRoute::Run(page) => page,
         }
     }
 
@@ -94,7 +97,7 @@ impl Page for ImagePage {
     }
 
     fn handle_command(&mut self, cmd: Command) -> Option<Action> {
-        if matches!(self.route, ImageRoute::Detail(_)) && cmd == Command::Back {
+        if !matches!(self.route, ImageRoute::List) && cmd == Command::Back {
             self.navigate(ImageRoute::List);
             return None;
         }
@@ -126,16 +129,37 @@ impl Page for ImagePage {
                 self.navigate(ImageRoute::Detail(detail));
                 return true;
             }
+            Action::Images(ImageAction::OpenRun {
+                image_id,
+                image_ref,
+            }) => {
+                let run_page = ImageRunPage::new(
+                    image_id.clone(),
+                    image_ref.clone(),
+                    self.svc.clone(),
+                    self.tx.clone(),
+                    &self.theme_color,
+                );
+                self.navigate(ImageRoute::Run(run_page));
+                return true;
+            }
             Action::Images(ImageAction::BackToList) => {
                 self.navigate(ImageRoute::List);
+                return true;
+            }
+            Action::Images(ImageAction::RunCompleted(Ok(_))) => {
+                self.navigate(ImageRoute::List);
+                self.list.update(action);
                 return true;
             }
             _ => {}
         }
 
         let mut handled = self.list.update(action);
-        if let ImageRoute::Detail(d) = &mut self.route {
-            handled |= d.update(action);
+        match &mut self.route {
+            ImageRoute::Detail(d) => handled |= d.update(action),
+            ImageRoute::Run(r) => handled |= r.update(action),
+            ImageRoute::List => {}
         }
 
         handled

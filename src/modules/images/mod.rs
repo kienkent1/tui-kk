@@ -6,4 +6,5 @@ pub mod image_dto;
 pub mod image_service;
 pub mod list_page;
 pub mod pages;
+pub mod run_page;
 pub mod ui;

@@ -6,7 +6,8 @@ use ratatui::{Frame, layout::Rect};
 
 use crate::{
     modules::images::{
-        actions::ImageAction as IA, constants::ImageDetailTab, image_service::ImageService, ui,
+        actions::ImageAction as IA, constants::ImageDetailTab, image_dto::short_image_id,
+        image_service::ImageService, ui,
     },
     shared::base::{
         base_action::Action,
@@ -105,6 +106,20 @@ impl Page for ImageDetailPage {
 
     fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         match key.code {
+            KeyCode::Char('r') | KeyCode::Char('R') => {
+                let image_ref = self
+                    .image
+                    .repo_tags
+                    .as_ref()
+                    .and_then(|tags| tags.first())
+                    .filter(|t| !t.is_empty() && *t != "<none>:<none>")
+                    .cloned()
+                    .unwrap_or_else(|| short_image_id(&self.id).to_owned());
+                return Some(Action::Images(IA::OpenRun {
+                    image_id: self.id.clone(),
+                    image_ref,
+                }));
+            }
             KeyCode::Char('1') => self.set_tab(ImageDetailTab::Overview),
             KeyCode::Char('2') => self.set_tab(ImageDetailTab::Layers),
             KeyCode::Char('3') => self.set_tab(ImageDetailTab::Config),

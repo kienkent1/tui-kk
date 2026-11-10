@@ -41,16 +41,37 @@ pub fn draw(
 
     row_buttons.clear();
     let body_top = inner.y + 1;
+    let run_icon = Icons::Start.glyph();
     let remove_icon = Icons::Remove.glyph();
 
     for (i, idx) in (offset..total_len).take(viewport).enumerate() {
         let row_rect = Rect::new(inner.x, body_top + i as u16, inner.width, 1);
+        let [run_cell, remove_cell] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)])
+                .flex(Flex::SpaceEvenly)
+                .areas(row_rect);
+
+        let run_target = ImageRowTarget {
+            row: idx,
+            action: ImageButtonAction::Run,
+        };
         let remove_target = ImageRowTarget {
             row: idx,
             action: ImageButtonAction::Remove,
         };
-        let remove_rect = button_rect(row_rect, remove_icon);
 
+        let run_rect = button_rect(run_cell, run_icon);
+        let remove_rect = button_rect(remove_cell, remove_icon);
+
+        frame.render_widget(
+            Paragraph::new(format!(" {run_icon} ")).style(button_style(
+                run_target,
+                hovered,
+                pressed,
+                theme.btn_start(),
+            )),
+            run_rect,
+        );
         frame.render_widget(
             Paragraph::new(format!(" {remove_icon} ")).style(button_style(
                 remove_target,
@@ -61,6 +82,10 @@ pub fn draw(
             remove_rect,
         );
 
+        row_buttons.push(ImageRowButton {
+            target: run_target,
+            rect: run_rect,
+        });
         row_buttons.push(ImageRowButton {
             target: remove_target,
             rect: remove_rect,

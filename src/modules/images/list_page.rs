@@ -11,7 +11,7 @@ use crate::{
     modules::images::{
         actions::{ImageAction as IA, ImageButtonAction},
         constants::ImageSort,
-        image_dto::{ImageRowButton, ImageRowTarget},
+        image_dto::{ImageRowButton, ImageRowTarget, primary_image_ref},
         image_service::ImageService,
         ui,
     },
@@ -293,8 +293,13 @@ impl ImageListPage {
         let rows = self.rows();
         let img = rows.get(target.row)?;
         let id = img.id.clone();
+        let image_ref = primary_image_ref(img);
 
         match target.action {
+            ImageButtonAction::Run => Some(Action::Images(IA::OpenRun {
+                image_id: id,
+                image_ref,
+            })),
             ImageButtonAction::Remove => Some(Action::Images(IA::Remove(id, true))),
         }
     }
@@ -370,6 +375,16 @@ impl Page for ImageListPage {
     fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         if !self.input_mode {
             match key.code {
+                KeyCode::Char('r') | KeyCode::Char('R') => {
+                    let rows = self.rows();
+                    let img = rows.get(self.cursor)?;
+                    let image_id = img.id.clone();
+                    let image_ref = primary_image_ref(img);
+                    return Some(Action::Images(IA::OpenRun {
+                        image_id,
+                        image_ref,
+                    }));
+                }
                 KeyCode::Char('s') | KeyCode::Char('S') => {
                     self.cycle_sort();
                 }
@@ -547,6 +562,10 @@ impl Page for ImageListPage {
                 }
                 true
             }
+            IA::RunCompleted(Ok(_)) => {
+                self.fetch();
+                true
+            }
             IA::CycleSort => {
                 self.cycle_sort();
                 true
@@ -563,7 +582,7 @@ impl Page for ImageListPage {
         let [search_area, list_area] =
             Layout::vertical([Constraint::Length(3), Constraint::Min(3)]).areas(area);
         let [table_area, action_area] =
-            Layout::horizontal([Constraint::Fill(1), Constraint::Length(10)]).areas(list_area);
+            Layout::horizontal([Constraint::Fill(1), Constraint::Length(12)]).areas(list_area);
 
         self.search_area = search_area;
         self.list_area = list_area;

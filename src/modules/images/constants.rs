@@ -94,3 +94,55 @@ impl ImageDetailTab {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum RunField {
+    #[default]
+    ContainerName,
+    Ports,
+    Volumes,
+    EnvFilePath,
+    EnvKey,
+    EnvValue,
+    EnvList,
+    RunButton,
+}
+
+impl RunField {
+    pub const ALL: [Self; 8] = [
+        Self::ContainerName,
+        Self::Ports,
+        Self::Volumes,
+        Self::EnvFilePath,
+        Self::EnvKey,
+        Self::EnvValue,
+        Self::EnvList,
+        Self::RunButton,
+    ];
+
+    pub fn next(self) -> Self {
+        match self {
+            Self::ContainerName => Self::Ports,
+            Self::Ports => Self::Volumes,
+            Self::Volumes => Self::EnvFilePath,
+            Self::EnvFilePath => Self::EnvKey,
+            Self::EnvKey => Self::EnvValue,
+            Self::EnvValue => Self::EnvList,
+            Self::EnvList => Self::RunButton,
+            Self::RunButton => Self::ContainerName,
+        }
+    }
+
+    pub fn prev(self) -> Self {
+        match self {
+            Self::ContainerName => Self::RunButton,
+            Self::Ports => Self::ContainerName,
+            Self::Volumes => Self::Ports,
+            Self::EnvFilePath => Self::Volumes,
+            Self::EnvKey => Self::EnvFilePath,
+            Self::EnvValue => Self::EnvKey,
+            Self::EnvList => Self::EnvValue,
+            Self::RunButton => Self::EnvList,
+        }
+    }
+}

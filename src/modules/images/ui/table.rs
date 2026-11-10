@@ -63,7 +63,7 @@ pub fn draw(
             .add_modifier(Modifier::BOLD),
     );
 
-    let mut title = format!(" Images ({len}) ");
+    let mut title = format!(" Images ({len}) [r: Run · d: Remove · p: Prune] ");
     if loading {
         title.push_str("· loading… ");
     }
