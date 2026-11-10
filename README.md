@@ -1,169 +1,176 @@
 # TUI-KK 🐳
 
-**`tui-kk`** là ứng dụng **Terminal UI (TUI)** hiệu năng cao được viết bằng **Rust** (`ratatui`, `bollard`, `tokio`, `crossterm`) giúp quản lý và giám sát container trực tiếp trên terminal.
+**`tui-kk`** is a fast, modular **Terminal User Interface (TUI)** written in **Rust** (`ratatui`, `bollard`, `tokio`, `crossterm`) for managing and monitoring containers directly from your terminal.
 
-Dự án giao tiếp trực tiếp với **Docker Engine API** thông qua Unix Socket, Named Pipe hoặc HTTP/TCP, do đó hoạt động mượt mà với **Docker Engine CLI**, **Podman**, **Colima**, **OrbStack**, **Rancher Desktop**, cũng như **Docker Desktop**.
+Because it communicates directly with the **Docker Engine API** over Unix Sockets, Windows Named Pipes, or HTTP/TCP, `tui-kk` works seamlessly with **Docker Engine CLI (`dockerd`)**, **Podman**, **Colima**, **OrbStack**, **Rancher Desktop**, and **Docker Desktop**.
 
 ---
 
-## 1. Dự án làm gì? (Tính năng chính)
+## 1. What Does `tui-kk` Do? (Core Features)
 
-Giao diện gồm **Sidebar điều hướng** bên trái (hỗ trợ cả phím tắt lẫn click chuột) và 4 phân hệ chính:
+The interface features a persistent **Sidebar** on the left (supporting both keyboard navigation and mouse clicks) and 5 main modules:
 
 1. **Dashboard (`1. Dashboard`)**
-   - Thẻ tổng quan Engine (phiên bản, OS/Arch, số CPU, tổng RAM, trạng thái Containers & Images).
-   - Biểu đồ thời gian thực (**Gauge** + **Braille Line Chart**) theo dõi **CPU (%)** và **RAM Usage** của toàn bộ container đang chạy.
-   - Biểu đồ cột (**BarChart**) phân bổ dung lượng **Storage** (`Images`, `Containers`, `Volumes`) và bảng thống kê tài nguyên chi tiết (`CPU %`, `MEM USAGE / LIMIT`, `MEM %`, `STORAGE RW / ROOTFS`) cho từng container.
+   - **Engine Overview Cards**: Docker Engine version, OS/Architecture, CPU cores, total host RAM, and container/image counts.
+   - **Real-Time Charts**: **Gauge** and **Braille Line Charts** tracking aggregate **CPU (%)** and **RAM Usage** across running containers.
+   - **Storage Breakdown**: **BarChart** comparing disk usage across `Images`, `Containers`, and `Volumes`, paired with a per-container resource table (`CPU %`, `MEM USAGE / LIMIT`, `MEM %`, `STORAGE RW / ROOTFS`).
 2. **Containers (`2. Containers`)**
-   - Tìm kiếm (chế độ `local` hoặc `remote`), lọc và sắp xếp theo `Name`, `Image`, `State`, `Created`.
-   - Thao tác vòng đời trực tiếp bằng phím tắt hoặc nút bấm chuột trên cột **Action**: `Start (▶)`, `Stop (■)`, `Restart`, `Remove (🗑)`.
-   - Màn hình **Container Detail** gồm 4 tab: `1. Overview`, `2. Network & Mounts`, `3. Env`, `4. Raw JSON`.
+   - Search (`local` in-memory or `remote` API mode), filter, and sort by `Name`, `Image`, `State`, or `Created`.
+   - Lifecycle management via keyboard shortcuts or interactive mouse buttons in the **Action** column: `Start (▶)`, `Stop (■)`, `Restart`, `Remove (🗑)`.
+   - **Container Detail View** with 4 tabs: `1. Overview`, `2. Network & Mounts`, `3. Env`, and `4. Raw JSON`.
 3. **Images (`3. Images`)**
-   - Danh sách image với tìm kiếm, sắp xếp (`RepoTag`, `Id`, `Size`, `Created`, `Containers`), xóa image (`Remove`) và dọn dẹp dangling images (`Prune`).
-   - **Run Image (Tạo & chạy container mới kiểu Docker Desktop)**:
-     - Cấu hình **Container Name**, **Port Mappings** (`host:container[/proto]`), **Volume Mounts** (`host:container[:ro]`).
-     - **Parse file `.env`**: nhập đường dẫn file `.env` để tự động đọc và nạp hàng loạt biến môi trường (hỗ trợ comment `#`, tiền tố `export `, chuỗi đơn/kép `'...'` / `"..."`, và tự động gộp/ghi đè key trùng).
-     - **Thêm/Sửa/Xóa biến môi trường trực tiếp**: nhập từng cặp `KEY` / `VALUE`, paste nhiều dòng `.env`, hoặc nạp các biến `Env` mặc định từ Image (`Import Image Env`).
-   - Màn hình **Image Detail** gồm 4 tab: `1. Overview`, `2. Layers`, `3. Config & Env`, `4. Raw JSON`.
+   - Search, sort (`RepoTag`, `Id`, `Size`, `Created`, `Containers`), remove images (`Remove`), and prune dangling images (`Prune`).
+   - **Docker Desktop-Style Run Image (`ImageRunPage`)**:
+     - Configure **Container Name**, **Port Mappings** (`host:container[/proto]`), and **Volume Mounts** (`host:container[:ro]`).
+     - **Parse `.env` Files**: specify a `.env` file path to automatically parse and load environment variables (supports `#` comments, `export ` prefixes, single/double quotes `'...'` / `"..."` with escape sequences, and duplicate key merging).
+     - **Interactive Environment Variables Builder**: manually add, edit, or delete `KEY=VALUE` entries, paste multi-line `.env` blocks directly, or import default `Env` variables defined in the image (`Import Image Env`).
+   - **Image Detail View** with 4 tabs: `1. Overview`, `2. Layers`, `3. Config & Env`, and `4. Raw JSON`.
 4. **Logs (`4. Logs`)**
-   - Quản lý các file log được ghi tại thư mục `log_dir` do người dùng cấu hình.
-   - Hiển thị dung lượng, thời gian cập nhật, thống kê số dòng `ERROR` / `WARN` của từng file log.
-   - Xem chi tiết nội dung log theo 4 tab lọc mức độ (`1: All`, `2: Errors Only`, `3: Warnings + Errors`, `4: Raw Lines`).
-   - Hỗ trợ **làm trống (`Clear`)**, **xóa từng file (`Delete`)**, hoặc **xóa toàn bộ file log (`Delete All`)**.
+   - Browse application and engine error/warning log files from the user-configured `log_dir`.
+   - Displays file size, last modified timestamp, total lines, and `ERROR` / `WARN` counts per file.
+   - **Log Detail View** with 4 level filter tabs (`1: All`, `2: Errors Only`, `3: Warnings + Errors`, `4: Raw Lines`).
+   - Supports **truncating/clearing (`Clear`)**, **deleting individual log files (`Delete`)**, or **deleting all log files (`Delete All`)**.
+5. **Settings (`5. Settings`)**
+   - View, edit, and save `config.toml` settings (`Theme`, `Icon Set`, `Query Mode`, `Log Level`, `Log Dir`, `Frame Rate`, `Tick Rate`).
+   - Configure and test (`Ping`) the **Docker Engine** connection (`socket`, `local`, `http`, `addr_or_path`, `timeout`, `client_version`).
+   - Inspect all active **Keybindings** by scope.
 
 ---
 
-## 2. Hướng dẫn tải và cài đặt
+## 2. Installation & Download
 
-### Yêu cầu hệ thống
-- **Rust toolchain**: `>= 1.88.0` (Rust Edition 2024).
-- **Container Engine**: Docker Engine (`dockerd`), Podman (`podman.socket`), Colima, OrbStack, Rancher Desktop, hoặc Docker Desktop đang chạy.
-- *(Tùy chọn)* **Nerd Font** (ví dụ: *JetBrainsMono Nerd Font*) nếu sử dụng `icon_set = "nerd"`.
+### Prerequisites
+- **Rust Toolchain**: `>= 1.88.0` (Rust 2024 Edition).
+- **Container Engine**: A running Docker-compatible daemon (`dockerd`, `podman.socket`, Colima, OrbStack, Rancher Desktop, or Docker Desktop).
+- *(Optional)* **Nerd Font** (e.g., *JetBrainsMono Nerd Font*) when using `icon_set = "nerd"`.
 
-### Tải mã nguồn & Build
+### Clone & Build
 
 ```bash
-# 1. Clone repository
+# 1. Clone the repository
 git clone <repository-url>
 cd tui-kk
 
-# 2. Build bản debug
+# 2. Build in debug mode
 cargo build
 
-# 3. Build bản release (tối ưu hiệu năng)
+# 3. Build optimized release binary
 cargo build --release
 
-# 4. (Tùy chọn) Cài đặt binary vào ~/.cargo/bin
+# 4. (Optional) Install the binary into ~/.cargo/bin
 cargo install --path .
 ```
 
 ---
 
-## 3. Lệnh chạy & Phím tắt
+## 3. Running & Keybindings
 
-### Các lệnh chạy ứng dụng
+### CLI Commands
 
 ```bash
-# Chạy trực tiếp bằng Cargo
+# Run with default configuration
 cargo run
 
-# Chạy bản release
+# Run optimized release build
 cargo run --release
 
-# Tuỳ chỉnh tốc độ khung hình (FPS) và tần số cập nhật (Tick rate Hz) (từ 1.0 đến 240.0)
+# Override UI frame rate (FPS) and tick rate (Hz) (valid range: 1.0–240.0)
 cargo run -- --frame-rate 60 --tick-rate 4
 
-# Kiểm tra hiển thị icon (ASCII / Nerd Font) trên terminal hiện tại
+# Preview ASCII vs. Nerd Font icons in your terminal
 cargo run -- --icon-preview
 
-# Xem trợ giúp CLI
+# Display CLI help and version
 cargo run -- --help
+cargo run -- --version
 ```
 
-### Phím tắt cơ bản
+### Default Keybindings
 
-| Phím | Chức năng | Phạm vi |
+| Key | Action | Scope |
 | :--- | :--- | :--- |
-| `Tab` / `Shift+Tab` | Chuyển qua lại giữa các trang trên Sidebar | Toàn cục (Global) |
-| `j` / `↓`, `k` / `↑` | Di chuyển con trỏ lên / xuống hoặc cuộn trang | Toàn cục |
-| `Enter` | Xem chi tiết mục đang chọn / Xác nhận | Toàn cục |
-| `Esc` | Quay lại danh sách / Thoát chế độ tìm kiếm | Toàn cục |
-| `/` | Bắt đầu tìm kiếm (Search) | Containers, Images, Logs |
-| `s` / `o` | Đổi tiêu chí sắp xếp (`CycleSort`) / Đảo chiều (`ToggleOrder`) | Containers, Images, Logs |
-| `F5` | Làm mới dữ liệu (`Refresh`) | Toàn cục |
-| `s` / `Ctrl+R` / `d` | Start-Stop / Restart / Xóa container | Containers |
-| `r` | Mở màn hình **Run Image** (tạo container & nạp `.env`) | Images |
-| `p` / `d` | Prune dangling images / Xóa image | Images |
-| `c` / `d` / `D` | Làm trống file log (`Clear`) / Xóa file log / Xóa tất cả log | Logs |
-| `l` | Chuyển nhanh tới trang **Logs** | Toàn cục |
-| `Shift+M` | Bật / tắt chế độ bắt sự kiện chuột (`MouseCapture`) | Toàn cục |
-| `q` / `Ctrl+C` | Thoát ứng dụng | Toàn cục |
+| `Tab` / `Shift+Tab` | Navigate to next / previous page in the Sidebar | Global |
+| `j` / `↓`, `k` / `↑` | Move selection cursor down / up or scroll | Global |
+| `Enter` | Open detail view / Confirm action | Global |
+| `Esc` | Go back to list / Cancel input mode | Global |
+| `/` | Focus search bar | Containers, Images, Logs |
+| `s` / `o` | Cycle sort column (`CycleSort`) / Toggle sort order (`ToggleOrder`) | Containers, Images, Logs |
+| `F5` | Refresh current view | Global |
+| `s` / `Ctrl+R` / `d` | Start-Stop / Restart / Remove container | Containers |
+| `r` | Open **Run Image** form (create container & parse `.env`) | Images |
+| `p` / `d` | Prune dangling images / Remove selected image | Images |
+| `c` / `d` / `D` | Clear (truncate) log file / Delete log file / Delete all logs | Logs |
+| `Ctrl+S` / `t` | Save configuration / Test (`Ping`) Docker connection | Settings |
+| `l` | Jump directly to the **Logs** page | Global |
+| `Shift+M` | Toggle mouse capture on / off | Global |
+| `q` / `Ctrl+C` | Quit application | Global |
 
 ---
 
-## 4. Hướng dẫn chạy Test
+## 4. Running Tests
 
-Toàn bộ unit tests được đặt tập trung tại thư mục [`src/tests/`](src/tests/):
+Unit tests are organized by module inside [`src/tests/`](src/tests/):
 
 ```bash
-# Chạy toàn bộ test suite
+# Run the entire test suite
 cargo test
 
-# Chạy test kèm hiển thị log/stdout
+# Run tests with stdout output visible
 cargo test -- --nocapture
 
-# Chạy riêng từng module test
+# Run tests for a specific module
 cargo test dashboard_test
 cargo test containers_test
 cargo test images_test
 cargo test logs_test
+cargo test settings_test
 cargo test click_tracker_test
 ```
 
 ---
 
-## 5. Hướng dẫn cấu hình khi dùng Engine CLI khác (Không dùng Docker Desktop)
+## 5. Configuration Guide for Alternative Container Engines (Without Docker Desktop)
 
-`tui-kk` đọc cấu hình từ file:
-1. **Cục bộ (Ưu tiên)**: `.config/config.toml` (ngay trong thư mục làm việc của dự án).
-2. **Toàn cục theo hệ điều hành**:
+`tui-kk` loads its configuration from:
+1. **Local workspace override (highest priority)**: `.config/config.toml` in the current working directory.
+2. **User system config directory**:
    - **Linux / macOS**: `~/.config/tuikk/config.toml`
    - **Windows**: `C:\Users\<User>\AppData\Roaming\tuikk\config.toml`
 
-### Cấu trúc file `config.toml`
+### Base `config.toml` Structure
 
 ```toml
-theme = "dark"               # "dark", "light", hoặc tên theme trong theme.json5
+theme = "dark"               # "dark", "light", or a custom theme name in theme.json5
 log_level = "warn"           # "trace", "debug", "info", "warn", "error"
-query_mode = "local"         # "local" (lọc trên RAM) hoặc "remote" (lọc qua API)
-log_dir = "./logs"           # Thư mục lưu và đọc file log cho trang Logs
-icon_set = "nerd"            # "ascii", "unicode", hoặc "nerd"
+query_mode = "local"         # "local" (in-memory filtering) or "remote" (daemon API filtering)
+log_dir = "./logs"           # Directory where application logs are stored and read by the Logs page
+icon_set = "nerd"            # "ascii", "unicode", or "nerd"
 
 [docker]
-default_conn_type = "socket" # "socket" (mặc định), "local", hoặc "http"
+default_conn_type = "socket" # "socket" (default), "local", or "http"
 # addr_or_path = "/var/run/docker.sock"
-timeout = 120                # Thời gian chờ kết nối (giây)
-# client_version = "1.45"    # (Tùy chọn) Ép phiên bản Docker API
+timeout = 120                # Request timeout in seconds
+# client_version = "1.45"    # (Optional) Pin Docker Engine API version
 
 [ui]
 frame_rate = 30.0
 tick_rate = 4.0
 ```
 
-### Cấu hình cho từng Container Engine CLI thay thế Docker Desktop
+### Configuring Alternative Container Engines
 
-Bạn chỉ cần chỉnh mục `[docker]` trong `.config/config.toml` tương ứng với engine CLI mà bạn đang sử dụng:
+Update the `[docker]` section in `config.toml` to match your container engine CLI:
 
-#### 5.1. Docker Engine CLI thuần trên Linux (`dockerd`)
-- **Chế độ mặc định (Rootful)**:
+#### 5.1. Standalone Docker Engine CLI on Linux (`dockerd`)
+- **Standard (Rootful) Daemon**:
   ```toml
   [docker]
   default_conn_type = "socket"
   addr_or_path = "/var/run/docker.sock"
   timeout = 120
   ```
-- **Chế độ Rootless Docker**:
-  Kiểm tra `echo $XDG_RUNTIME_DIR/docker.sock` (thường là `/run/user/1000/docker.sock`):
+- **Rootless Docker Daemon**:
+  Check `echo $XDG_RUNTIME_DIR/docker.sock` (typically `/run/user/1000/docker.sock`):
   ```toml
   [docker]
   default_conn_type = "socket"
@@ -172,33 +179,33 @@ Bạn chỉ cần chỉnh mục `[docker]` trong `.config/config.toml` tương �
   ```
 
 #### 5.2. Podman CLI (`podman`)
-Podman cung cấp REST API tương thích với Docker Engine qua `podman.socket`.
-- **Trên Linux (Rootless Podman)**:
-  1. Bật socket của Podman:
+Podman exposes a Docker-compatible API socket via `podman.socket`.
+- **Linux (Rootless Podman)**:
+  1. Enable the user Podman socket:
      ```bash
      systemctl --user enable --now podman.socket
      ```
-  2. Cấu hình trong `config.toml`:
+  2. Configure `config.toml`:
      ```toml
      [docker]
      default_conn_type = "socket"
      addr_or_path = "/run/user/1000/podman/podman.sock"
      timeout = 120
      ```
-- **Trên macOS / Windows (Podman Machine)**:
-  1. Lấy đường dẫn socket bằng lệnh:
+- **macOS / Windows (Podman Machine)**:
+  1. Inspect the machine socket path:
      ```bash
      podman machine inspect --format '{{.ConnectionInfo.PodmanSocket.Path}}'
      ```
-  2. Điền đường dẫn đó vào `addr_or_path` với `default_conn_type = "socket"` (hoặc `"local"` trên Windows Named Pipe).
+  2. Set `addr_or_path` to that path with `default_conn_type = "socket"` (or `"local"` on Windows Named Pipe).
 
 #### 5.3. Colima CLI (`colima`)
-1. Khởi chạy Colima: `colima start`
-2. Xem đường dẫn socket bằng `colima status` (thường nằm ở `~/.colima/default/docker.sock`):
+1. Start Colima: `colima start`
+2. Point `addr_or_path` to Colima's socket (`~/.colima/default/docker.sock`):
    ```toml
    [docker]
    default_conn_type = "socket"
-   addr_or_path = "/home/<user>/.colima/default/docker.sock" # hoặc /Users/<user>/.colima/default/docker.sock trên macOS
+   addr_or_path = "/Users/<username>/.colima/default/docker.sock" # or /home/<username>/.colima/default/docker.sock on Linux
    timeout = 120
    ```
 
@@ -206,59 +213,60 @@ Podman cung cấp REST API tương thích với Docker Engine qua `podman.socket
 ```toml
 [docker]
 default_conn_type = "socket"
-addr_or_path = "/Users/<user>/.orbstack/run/docker.sock"
+addr_or_path = "/Users/<username>/.orbstack/run/docker.sock"
 timeout = 120
 ```
 
-#### 5.5. Rancher Desktop (chế độ `dockerd` / `moby`)
+#### 5.5. Rancher Desktop (`dockerd` / `moby` runtime)
 ```toml
 [docker]
 default_conn_type = "socket"
-addr_or_path = "/Users/<user>/.rd/docker.sock" # Trên Linux: /home/<user>/.rd/docker.sock
+addr_or_path = "/Users/<username>/.rd/docker.sock" # Linux: /home/<username>/.rd/docker.sock
 timeout = 120
 ```
 
-#### 5.6. Kết nối qua HTTP / TCP Daemon (Remote Engine hoặc `podman system service`)
-Khi chạy daemon qua cổng mạng (ví dụ `dockerd -H tcp://127.0.0.1:2375` hoặc `podman system service -t 0 tcp:127.0.0.1:8080`):
+#### 5.6. Remote HTTP / TCP Daemon (`dockerd -H tcp://...` or `podman system service`)
+When connecting to an engine listening on TCP/HTTP (e.g., `dockerd -H tcp://127.0.0.1:2375` or `podman system service -t 0 tcp:127.0.0.1:8080`):
 ```toml
 [docker]
 default_conn_type = "http"
-addr_or_path = "tcp://127.0.0.1:2375" # Hỗ trợ tcp://, http://, hoặc https://
+addr_or_path = "tcp://127.0.0.1:2375" # Supports tcp://, http://, or https://
 timeout = 120
 ```
 
 ---
 
-## 6. Kiến trúc & Phong cách Code (Coding Style)
+## 6. Architecture & Coding Style
 
-Dự án được thiết kế theo hướng **Module hóa (Modular Architecture)**, đảm bảo dễ dàng kế thừa, mở rộng và bảo trì:
+The codebase follows a strict **Modular Architecture** designed for readability, inheritance/reuse, and easy maintenance:
 
 ```text
 src/
-├── main.rs                      # Entrypoint: khởi tạo CLI, AppConfig, Logging, DockerConnection, AppServices
-├── tuikk_core/                  # Lõi hệ thống: App event loop, Router, Config, KeyMap, ThemeColor, Tui
-├── shared/                      # Thành phần dùng chung
-│   ├── base/                    # Trait nền tảng: Page, BaseWidget, Action, BaseFilter, BaseErr, Icons
-│   ├── helpers/                 # Tiện ích mở rộng (logging, bảng màu button)
-│   └── widgets/                 # Widget dùng chung toàn cục (SideBar, Button, StatusBar)
-├── modules/                     # Các module tính năng độc lập
-│   ├── dashboard/               # Module Dashboard (biểu đồ CPU, RAM, Storage)
-│   ├── containers/              # Module Containers (List, Detail, Lifecycle actions)
-│   ├── images/                  # Module Images (List, Detail, Run Image + .env parser)
-│   └── logs/                    # Module Logs (xem, lọc mức độ và xóa/clear file log)
-└── tests/                       # Unit tests tách riêng cho từng module
+├── main.rs                      # Entrypoint: CLI parsing, AppConfig, Logging, DockerConnection, AppServices
+├── tuikk_core/                  # Core infrastructure: App loop, Router, Config, KeyMap, ThemeColor, Tui
+├── shared/                      # Shared abstractions & reusable widgets
+│   ├── base/                    # Base traits & types: Page, BaseWidget, Action, BaseFilter, BaseErr, Icons
+│   ├── helpers/                 # Logging extensions & button color palettes
+│   └── widgets/                 # Global widgets (SideBar, Button, StatusBar)
+├── modules/                     # Feature modules
+│   ├── dashboard/               # CPU, RAM, and Storage charts + per-container metrics
+│   ├── containers/              # Container list, lifecycle actions, and tabbed inspect view
+│   ├── images/                  # Image list, tabbed inspect view, and Run Image (.env parser + env builder)
+│   ├── logs/                    # Log file browser, level filter tabs, clear & delete actions
+│   └── settings/                # Interactive configuration editor, Docker connection tester, keybindings viewer
+└── tests/                       # Dedicated unit test module per feature
 ```
 
-### Nguyên tắc tổ chức bên trong mỗi Module (`src/modules/<feature>/`)
-1. **Phân tách trách nhiệm rõ ràng**:
-   - `actions.rs`: Định nghĩa các `Action` / `ButtonAction` riêng của module.
-   - `constants.rs`: Định nghĩa các enum trạng thái tĩnh như `Sort`, `Tab`, `Field`.
-   - `*_dto.rs`: Chứa các cấu trúc dữ liệu (DTO) và các hàm thuần túy (`pure functions`) để parse/format dữ liệu (ví dụ: `parse_env_content`, `parse_repo_tag`, `parse_log_line`, `format_bytes`).
-   - `*_service.rs`: Chứa logic gọi API bất đồng bộ (`bollard` hoặc filesystem) và logic lọc/sắp xếp dữ liệu. Được khởi tạo một lần và chia sẻ qua `AppServices` (`Arc<Service>`).
-   - `pages.rs`, `list_page.rs`, `detail_page.rs`: Thực thi trait `Page`, quản lý state, điều hướng nội bộ và xử lý sự kiện phím/chuột.
-2. **Hàm `draw()` ngắn gọn, tách nhỏ các file UI con (`ui/*.rs`)**:
-   - Không viết logic render dài dòng bên trong `list_page.rs` hay `detail_page.rs`.
-   - Mỗi thành phần giao diện được tách thành một file nhỏ trong thư mục `ui/` của module đó (ví dụ: `ui/search_box.rs`, `ui/table.rs`, `ui/action_column.rs`, `ui/detail_view.rs`, `ui/run_view.rs`, `ui/cpu_chart.rs`, `ui/mem_chart.rs`, `ui/storage_panel.rs`).
-   - Hàm `Page::draw()` chỉ tính toán `Layout` và ủy quyền vẽ cho các hàm `ui::<component>::draw(...)`.
-3. **Dễ dàng kiểm thử (Testability)**:
-   - Mỗi module trong `src/modules/` đều đi kèm một file unit test tương ứng trong `src/tests/` (`dashboard_test.rs`, `containers_test.rs`, `images_test.rs`, `logs_test.rs`, `click_tracker_test.rs`).
+### Module Design Principles (`src/modules/<feature>/`)
+1. **Clear Separation of Concerns**:
+   - `actions.rs`: Module-scoped `Action` and `ButtonAction` enums dispatched through the central event channel.
+   - `constants.rs`: Strongly typed enums for sorting (`*Sort`), tabs (`*Tab`), and form focus fields (`*Field`).
+   - `*_dto.rs`: Data Transfer Objects and pure formatting/parsing functions (e.g., `parse_env_content`, `parse_repo_tag`, `parse_log_line`, `format_bytes`).
+   - `*_service.rs`: Asynchronous service layer wrapping `bollard` or filesystem I/O, registered in `AppServices` via `Arc<Service>`.
+   - `pages.rs`, `list_page.rs`, `detail_page.rs`: Implement the `Page` trait, managing state transitions, async request sequencing (`req_seq`), and keyboard/mouse events.
+2. **Short `draw()` Methods & Small Embedded UI Files (`ui/*.rs`)**:
+   - `Page::draw()` methods never contain monolithic widget-building blocks.
+   - Instead, each visual area is extracted into a small, focused file inside the module's `ui/` directory (e.g., `ui/search_box.rs`, `ui/table.rs`, `ui/action_column.rs`, `ui/detail_view.rs`, `ui/run_view.rs`, `ui/cpu_chart.rs`, `ui/mem_chart.rs`, `ui/storage_panel.rs`).
+   - `Page::draw()` only computes the high-level `Layout` rects and delegates rendering to `ui::<sub_module>::draw(...)`.
+3. **First-Class Unit Testing (`src/tests/`)**:
+   - Every module in `src/modules/` has a corresponding unit test file in `src/tests/` testing pure business logic, parsers, sorting/filtering comparators, and page state transitions without requiring a live Docker daemon.

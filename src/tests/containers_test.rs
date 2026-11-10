@@ -18,7 +18,9 @@ use crate::{
 };
 
 fn dummy_service() -> Arc<ContainerService> {
-    let docker = Docker::connect_with_local_defaults().unwrap();
+    let docker =
+        Docker::connect_with_http("http://127.0.0.1:2375", 4, bollard::API_DEFAULT_VERSION)
+            .unwrap();
     Arc::new(ContainerService::new(Arc::new(docker)))
 }
 

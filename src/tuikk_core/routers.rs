@@ -12,6 +12,7 @@ use crate::{
         dashboard::pages::DashboardPage,
         images::pages::ImagePage,
         logs::pages::LogPage,
+        settings::pages::SettingsPage,
     },
     shared::{
         base::{
@@ -72,6 +73,15 @@ impl Router {
         pages.insert(
             Route::Logs,
             Box::new(LogPage::new(
+                services,
+                tx.clone(),
+                &app_config.theme_color,
+            )),
+        );
+
+        pages.insert(
+            Route::Settings,
+            Box::new(SettingsPage::new(
                 services,
                 tx.clone(),
                 &app_config.theme_color,

@@ -4,6 +4,7 @@ use crate::{
         dashboard::actions::DashboardAction,
         images::actions::ImageAction,
         logs::actions::LogAction,
+        settings::actions::SettingsAction,
     },
     tuikk_core::route::Route,
 };
@@ -49,4 +50,5 @@ pub enum Action {
     Containers(ContainerAction),
     Images(ImageAction),
     LogsPage(LogAction),
+    Settings(SettingsAction),
 }

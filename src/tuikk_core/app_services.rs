@@ -8,6 +8,7 @@ use crate::{
         dashboard::dashboard_service::DashboardService,
         images::image_service::ImageService,
         logs::log_service::LogService,
+        settings::settings_service::SettingsService,
     },
     tuikk_core::docker_conn::{DockerConnError, DockerConnection},
 };
@@ -20,6 +21,7 @@ pub struct AppServices {
     pub containers: Arc<ContainerService>,
     pub images: Arc<ImageService>,
     pub logs: Arc<LogService>,
+    pub settings: Arc<SettingsService>,
 }
 
 impl AppServices {
@@ -29,6 +31,7 @@ impl AppServices {
         let containers = Arc::new(ContainerService::new(docker.clone()));
         let images = Arc::new(ImageService::new(docker.clone()));
         let logs = Arc::new(LogService::from_config());
+        let settings = Arc::new(SettingsService::new());
 
         INSTANCE
             .set(AppServices {
@@ -37,6 +40,7 @@ impl AppServices {
                 containers,
                 images,
                 logs,
+                settings,
             })
             .map_err(|_| DockerConnError::AlreadyInitialized)
     }
