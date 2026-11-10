@@ -5,9 +5,8 @@ use strum::{EnumCount, FromRepr};
 )]
 #[serde(rename_all = "snake_case")]
 pub enum Route {
-    //#[default]
-    Dashboard,
     #[default]
+    Dashboard,
     Containers,
     Images,
     Settings,
@@ -22,5 +21,9 @@ pub struct Pages {
 impl Pages {
     pub fn new(route: Route, name: &'static str) -> Self {
         Self { route, name }
+    }
+
+    pub fn route(&self) -> Route {
+        self.route
     }
 }

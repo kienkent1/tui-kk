@@ -115,16 +115,11 @@ impl App {
     }
 
     fn next_route(&self) -> Route {
-        use strum::EnumCount;
-        let idx = (self.router.current_route() as usize + 1) % Route::COUNT;
-        Route::from_repr(idx).unwrap_or_default()
+        self.router.next_route()
     }
 
     fn prev_route(&self) -> Route {
-        use strum::EnumCount;
-        let idx = self.router.current_route() as usize;
-        let prev = if idx == 0 { Route::COUNT - 1 } else { idx - 1 };
-        Route::from_repr(prev).unwrap_or_default()
+        self.router.prev_route()
     }
 
     // ───────────────────────── key handling ─────────────────────────

@@ -1,11 +1,14 @@
-use crate::{modules::containers::actions::ContainerAction, tuikk_core::route::Route};
+use crate::{
+    modules::{containers::actions::ContainerAction, dashboard::actions::DashboardAction},
+    tuikk_core::route::Route,
+};
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
 #[derive(Debug, Clone, Display, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Action {
-    //Only in runtime
+    // Only in runtime
     #[serde(skip)]
     Tick,
     #[serde(skip)]
@@ -17,7 +20,7 @@ pub enum Action {
     #[serde(skip)]
     Error(String),
 
-    //global: can bind
+    // global: can bind
     Suspend,
     Quit,
     ClearScreen,
@@ -36,6 +39,7 @@ pub enum Action {
     Logs,
     MouseCapture,
 
-    //page action
+    // page action
+    Dashboard(DashboardAction),
     Containers(ContainerAction),
 }
