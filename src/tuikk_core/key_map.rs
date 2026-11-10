@@ -8,6 +8,7 @@ use crate::tuikk_core::config::AppConfig;
 #[serde(rename_all = "snake_case")]
 pub enum KeyScope {
     Global,
+    Dashboard,
     Containers,
     Images,
     Settings,

@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::{Frame, layout::Rect};
-use tokio::task::JoinHandle;
 
 use crate::{
     modules::containers::{
@@ -30,7 +29,6 @@ pub struct ContainerPage {
     route: ContainerRoute,
     list: ContainerListPage,
     tx: Tx,
-    tasks: Vec<JoinHandle<()>>,
     svc: Arc<ContainerService>,
     theme_color: ThemeColor,
 }
@@ -47,9 +45,8 @@ impl ContainerPage {
                 app_config.query_mode == QueryMode::Local,
                 theme_color,
             ),
-            tx: tx,
-            tasks: Vec::new(),
-            svc: svc.clone(),
+            tx,
+            svc,
             theme_color: *theme_color,
         }
     }
@@ -87,9 +84,11 @@ impl Page for ContainerPage {
     fn on_activate(&mut self) {
         self.active().on_activate();
     }
+
     fn on_deactivate(&mut self) {
         self.active().on_deactivate();
     }
+
     fn tick(&mut self) -> bool {
         self.active().tick()
     }
@@ -102,26 +101,36 @@ impl Page for ContainerPage {
 
         self.active().handle_command(cmd)
     }
+
     fn handle_paste(&mut self, text: &str) -> Option<Action> {
         self.active().handle_paste(text)
     }
+
     fn handle_key_event(&mut self, k: KeyEvent) -> Option<Action> {
         self.active().handle_key_event(k)
     }
+
     fn handle_mouse_event(&mut self, m: MouseEvent) -> Option<Action> {
         self.active().handle_mouse_event(m)
     }
 
     fn update(&mut self, action: &Action) -> bool {
-        if let Action::Containers(ContainerAction::OpenDetail(id)) = action {
-            let detail = ContainerDetailPage::new(
-                id.clone(),
-                self.svc.clone(),
-                self.tx.clone(),
-                &self.theme_color,
-            );
-            self.navigate(ContainerRoute::Detail(detail));
-            return true;
+        match action {
+            Action::Containers(ContainerAction::OpenDetail(id)) => {
+                let detail = ContainerDetailPage::new(
+                    id.clone(),
+                    self.svc.clone(),
+                    self.tx.clone(),
+                    &self.theme_color,
+                );
+                self.navigate(ContainerRoute::Detail(detail));
+                return true;
+            }
+            Action::Containers(ContainerAction::BackToList) => {
+                self.navigate(ContainerRoute::List);
+                return true;
+            }
+            _ => {}
         }
 
         let mut handled = self.list.update(action);

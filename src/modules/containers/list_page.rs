@@ -1,17 +1,24 @@
+use std::sync::Arc;
+
+use bollard::plugin::{ContainerSummary, ContainerSummaryStateEnum};
+use crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEvent, MouseEventKind};
+use ratatui::{
+    Frame,
+    layout::{Constraint, Layout, Position, Rect},
+};
+
 use crate::{
     modules::containers::{
         actions::{ButtonAction, ContainerAction as CA},
+        constants::ContainerSort,
         container_dto::{RowButton, RowTarget},
         container_service::ContainerService,
+        ui,
     },
-    shared::{
-        base::{
-            base_action::Action,
-            base_component::{Page, Tx},
-            base_filter::BaseFilter,
-            icons::Icons,
-        },
-        helpers::get_color_helpers::BtnPalette,
+    shared::base::{
+        base_action::Action,
+        base_component::{Page, Tx},
+        base_filter::BaseFilter,
     },
     tuikk_core::{
         click_tracker::{ClickTracker, Clicks},
@@ -19,16 +26,7 @@ use crate::{
         themes::ThemeColor,
     },
 };
-use bollard::plugin::{ContainerSummary, ContainerSummaryStateEnum, PortSummaryTypeEnum};
-use crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEvent, MouseEventKind};
-use ratatui::{
-    Frame,
-    layout::{Constraint, Flex, Layout, Position, Rect},
-    style::{Color, Modifier, Style, Stylize},
-    widgets::{Block, Cell, Paragraph, Row, Table, TableState},
-};
-use ratatui_interact::components::{Button, ButtonState};
-use std::{collections::BTreeSet, sync::Arc};
+
 pub struct ContainerListPage {
     svc: Arc<ContainerService>,
     tx: Tx,
@@ -37,6 +35,8 @@ pub struct ContainerListPage {
 
     items: Vec<ContainerSummary>,
     filter: BaseFilter,
+    sort_key: Option<ContainerSort>,
+    sort_desc: bool,
     clicks: ClickTracker,
 
     // search
@@ -45,7 +45,6 @@ pub struct ContainerListPage {
     prev_search: Option<String>,
     search_area: Rect,
     list_area: Rect,
-    table_state: TableState,
 
     // button
     row_buttons: Vec<RowButton>,
@@ -78,13 +77,14 @@ impl ContainerListPage {
             theme_color: *theme_color,
             items: Vec::new(),
             filter: BaseFilter::default(),
+            sort_key: None,
+            sort_desc: false,
             clicks: ClickTracker::default(),
             input_mode: false,
             draft: String::new(),
             prev_search: None,
             search_area: Rect::default(),
             list_area: Rect::default(),
-            table_state: TableState::default(),
             row_buttons: Vec::new(),
             hovered: None,
             pressed: None,
@@ -98,7 +98,7 @@ impl ContainerListPage {
         }
     }
 
-    fn rows(&self) -> Vec<&ContainerSummary> {
+    pub fn rows(&self) -> Vec<&ContainerSummary> {
         if self.is_local {
             self.svc.query_containers(&self.items, &self.filter)
         } else {
@@ -106,7 +106,7 @@ impl ContainerListPage {
         }
     }
 
-    fn row_id(&self, index: usize) -> Option<String> {
+    pub fn row_id(&self, index: usize) -> Option<String> {
         self.rows().get(index).and_then(|c| c.id.clone())
     }
 
@@ -115,6 +115,27 @@ impl ContainerListPage {
             .iter()
             .find(|c| c.id.as_deref() == Some(id))
             .cloned()
+    }
+
+    pub fn cursor(&self) -> usize {
+        self.cursor
+    }
+
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
+
+    pub fn selected_id(&self) -> Option<&str> {
+        self.selected_id.as_deref()
+    }
+
+    pub fn set_viewport(&mut self, viewport: usize) {
+        self.viewport = viewport.max(1);
+    }
+
+    pub fn set_items(&mut self, items: Vec<ContainerSummary>) {
+        self.items = items;
+        self.sync();
     }
 
     fn fetch(&mut self) {
@@ -143,6 +164,50 @@ impl ContainerListPage {
         });
     }
 
+    fn spawn_toggle_state(&mut self, id: String, should_start: bool) {
+        self.loading = true;
+        self.error = None;
+        let (svc, tx) = (self.svc.clone(), self.tx.clone());
+        tokio::spawn(async move {
+            let res = if should_start {
+                svc.start_container(&id).await
+            } else {
+                svc.stop_container(&id).await
+            }
+            .map(|_| id)
+            .map_err(|e| e.to_string());
+            let _ = tx.send(Action::Containers(CA::ActionCompleted(res)));
+        });
+    }
+
+    fn spawn_restart(&mut self, id: String) {
+        self.loading = true;
+        self.error = None;
+        let (svc, tx) = (self.svc.clone(), self.tx.clone());
+        tokio::spawn(async move {
+            let res = svc
+                .restart_container(&id)
+                .await
+                .map(|_| id)
+                .map_err(|e| e.to_string());
+            let _ = tx.send(Action::Containers(CA::ActionCompleted(res)));
+        });
+    }
+
+    fn spawn_remove(&mut self, id: String) {
+        self.loading = true;
+        self.error = None;
+        let (svc, tx) = (self.svc.clone(), self.tx.clone());
+        tokio::spawn(async move {
+            let res = svc
+                .remove_container(&id, true)
+                .await
+                .map(|_| id)
+                .map_err(|e| e.to_string());
+            let _ = tx.send(Action::Containers(CA::ActionCompleted(res)));
+        });
+    }
+
     fn on_filter_change(&mut self) {
         self.reset_selection();
         if self.is_local {
@@ -152,13 +217,31 @@ impl ContainerListPage {
         }
     }
 
-    fn set_search(&mut self, s: &str) {
+    pub fn set_search(&mut self, s: &str) {
         let s = s.trim();
         self.filter.search = if s.is_empty() {
             None
         } else {
             Some(s.to_owned())
-        }
+        };
+    }
+
+    pub fn cycle_sort(&mut self) {
+        let next_key = match self.sort_key {
+            Some(k) => k.next(),
+            None => ContainerSort::Name,
+        };
+        self.sort_key = Some(next_key);
+        self.filter.sort = Some(next_key.to_filter_string(self.sort_desc));
+        self.on_filter_change();
+    }
+
+    pub fn toggle_sort_order(&mut self) {
+        self.sort_desc = !self.sort_desc;
+        let key = self.sort_key.unwrap_or(ContainerSort::Name);
+        self.sort_key = Some(key);
+        self.filter.sort = Some(key.to_filter_string(self.sort_desc));
+        self.on_filter_change();
     }
 
     // ───────────── selection ─────────────
@@ -169,7 +252,7 @@ impl ContainerListPage {
         self.selected_id = None;
     }
 
-    fn clamp(&mut self, len: usize) {
+    pub fn clamp(&mut self, len: usize) {
         if len == 0 {
             self.cursor = 0;
             self.offset = 0;
@@ -209,7 +292,7 @@ impl ContainerListPage {
         self.selected_id = self.row_id(self.cursor);
     }
 
-    fn move_cursor(&mut self, delta: isize) {
+    pub fn move_cursor(&mut self, delta: isize) {
         let len = self.rows().len();
         if len == 0 {
             return;
@@ -225,10 +308,10 @@ impl ContainerListPage {
         self.draft = String::new();
         self.prev_search = None;
         self.filter.search = None;
-        self.on_filter_change();
+        self.fetch();
     }
 
-    fn click_button_event(&mut self, pos: &Position) -> Option<RowTarget> {
+    fn click_button_event(&self, pos: &Position) -> Option<RowTarget> {
         self.row_buttons
             .iter()
             .find(|b| b.rect.contains(*pos))
@@ -250,19 +333,24 @@ impl ContainerListPage {
         }
     }
 }
+
 impl Page for ContainerListPage {
     fn scope(&self) -> KeyScope {
         KeyScope::Containers
     }
+
     fn captures_input(&self) -> bool {
         self.input_mode
     }
+
     fn on_activate(&mut self) {
         if self.items.is_empty() && !self.loading {
             self.fetch();
         }
     }
+
     fn on_deactivate(&mut self) {}
+
     fn tick(&mut self) -> bool {
         true
     }
@@ -281,8 +369,19 @@ impl Page for ContainerListPage {
                 let id = self.row_id(self.cursor)?;
                 return Some(Action::Containers(CA::OpenDetail(id)));
             }
+            Command::Stop => {
+                let rows = self.rows();
+                let c = rows.get(self.cursor)?;
+                let id = c.id.clone()?;
+                let running = c.state == Some(ContainerSummaryStateEnum::RUNNING);
+                return Some(Action::Containers(CA::ToggleState(id, !running)));
+            }
+            Command::Delete => {
+                let id = self.row_id(self.cursor)?;
+                return Some(Action::Containers(CA::Remove(id)));
+            }
             Command::Back => {
-                if self.filter.search.is_none() {
+                if self.filter.search.is_some() {
                     self.filter.search = None;
                     self.draft.clear();
                     self.on_filter_change();
@@ -309,9 +408,17 @@ impl Page for ContainerListPage {
         None
     }
 
-    /// Only called in input mode (or when the key is unassigned).
     fn handle_key_event(&mut self, key: KeyEvent) -> Option<Action> {
         if !self.input_mode {
+            match key.code {
+                KeyCode::Char('s') | KeyCode::Char('S') => {
+                    self.cycle_sort();
+                }
+                KeyCode::Char('o') | KeyCode::Char('O') => {
+                    self.toggle_sort_order();
+                }
+                _ => {}
+            }
             return None;
         }
 
@@ -347,18 +454,16 @@ impl Page for ContainerListPage {
                     self.on_filter_change();
                 }
             }
-
             _ => {}
         }
         None
     }
+
     fn handle_mouse_event(&mut self, mouse: MouseEvent) -> Option<Action> {
         let pos = Position::new(mouse.column, mouse.row);
         let button_clicked = self.click_button_event(&pos);
         match mouse.kind {
             MouseEventKind::Down(MouseButton::Left) => {
-                // Buttons first: the action column lives inside `list_area`,
-                // so without this the click would fall into the row-select logic.
                 if let Some(target) = button_clicked {
                     self.pressed = Some(target);
                     self.cursor = target.row;
@@ -367,21 +472,18 @@ impl Page for ContainerListPage {
                 }
                 self.pressed = None;
 
-                // Click on the search box.
                 if self.search_area.contains(pos) {
                     if !self.input_mode {
                         return self.handle_command(Command::Search);
                     }
-                    return None; // typing now, not resetting draft
+                    return None;
                 }
 
-                // Click on the table
                 if self.list_area.contains(pos) {
                     let click = self.clicks.listen(mouse.column, mouse.row);
                     if click == Clicks::Nothing {
                         return None;
                     }
-                    // When clicking outside the table while entering data -> quit input mode
                     if self.input_mode {
                         self.input_mode = false;
                         if !self.is_local {
@@ -392,20 +494,19 @@ impl Page for ContainerListPage {
                         }
                     }
 
-                    // 1 top border + 1 header = first data row
                     let first_row_y = self.list_area.y + 2;
                     if pos.y < first_row_y {
-                        return None; // click on the borrder/header
+                        return None;
                     }
 
                     let row_in_view = (pos.y - first_row_y) as usize;
                     if row_in_view >= self.viewport {
-                        return None; // click on the bottom border
+                        return None;
                     }
 
                     let idx = self.offset + row_in_view;
                     if idx >= self.rows().len() {
-                        return None; // click on the empty space
+                        return None;
                     }
 
                     self.cursor = idx;
@@ -421,7 +522,6 @@ impl Page for ContainerListPage {
 
             MouseEventKind::Up(MouseButton::Left) => {
                 let pressed = self.pressed.take();
-                // Fire only if released on the same button that was pressed
                 if let (Some(p), Some(h)) = (pressed, button_clicked) {
                     if p == h {
                         return self.handle_button_event(h);
@@ -443,271 +543,119 @@ impl Page for ContainerListPage {
 
         None
     }
+
     fn update(&mut self, action: &Action) -> bool {
-        let Action::Containers(CA::Loaded(seq, res)) = action else {
+        let Action::Containers(ca) = action else {
             return false;
         };
 
-        if *seq != self.req_seq {
-            return false;
-        }
-        self.loading = false;
-        match res {
-            Ok(items) => {
-                self.items = items.clone();
-                self.error = None;
-                self.sync();
+        match ca {
+            CA::Refresh => {
+                self.refresh();
+                true
             }
-            Err(e) => self.error = Some(e.clone()),
+            CA::Loaded(seq, res) => {
+                if *seq != self.req_seq {
+                    return false;
+                }
+                self.loading = false;
+                match res {
+                    Ok(items) => {
+                        self.items = items.clone();
+                        self.error = None;
+                        self.sync();
+                    }
+                    Err(e) => self.error = Some(e.clone()),
+                }
+                true
+            }
+            CA::ToggleState(id, should_start) => {
+                self.spawn_toggle_state(id.clone(), *should_start);
+                true
+            }
+            CA::Restart(id) => {
+                self.spawn_restart(id.clone());
+                true
+            }
+            CA::Remove(id) => {
+                self.spawn_remove(id.clone());
+                true
+            }
+            CA::ActionCompleted(res) => {
+                self.loading = false;
+                match res {
+                    Ok(_) => self.fetch(),
+                    Err(e) => self.error = Some(e.clone()),
+                }
+                true
+            }
+            CA::CycleSort => {
+                self.cycle_sort();
+                true
+            }
+            CA::ToggleOrder => {
+                self.toggle_sort_order();
+                true
+            }
+            _ => false,
         }
-
-        true
     }
+
     fn draw(&mut self, frame: &mut Frame, area: Rect) {
-        let [search_area, table_area] =
+        let [search_area, list_area] =
             Layout::vertical([Constraint::Length(3), Constraint::Min(3)]).areas(area);
+        let [table_area, action_area] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Length(12)]).areas(list_area);
 
         self.search_area = search_area;
-        self.list_area = table_area;
-        // ── search box ──
-        self.search_box(frame);
+        self.list_area = list_area;
+        self.viewport = table_area.height.saturating_sub(3) as usize;
 
-        // ── table ──
-        self.draw_table(frame);
-    }
-}
-
-// Draw fn
-impl ContainerListPage {
-    fn search_box(&mut self, frame: &mut Frame) {
-        let (text, border) = if self.input_mode {
-            (
-                self.draft.clone(),
-                Style::new().fg(self.theme_color.border_focus),
-            )
-        } else {
-            (
-                self.filter.search.clone().unwrap_or_default(),
-                Style::new().fg(self.theme_color.border),
-            )
-        };
-
-        let mode = if self.is_local { "local" } else { "remote" };
-
-        let block = Block::bordered()
-            .title(format!(" Search (/) · {mode} "))
-            .border_style(border);
-        let inner = block.inner(self.search_area);
-
-        let text_color = Style::new().fg(self.theme_color.input_cursor);
-        frame.render_widget(
-            Paragraph::new(text).style(text_color).block(block),
-            self.search_area,
-        );
-
-        if self.input_mode {
-            let w = ratatui::text::Line::from(self.draft.as_str()).width() as u16;
-            let x = (inner.x + w).min(inner.right().saturating_sub(1));
-            frame.set_cursor_position((x, inner.y));
-        }
-    }
-
-    fn draw_table(&mut self, frame: &mut Frame) {
-        let [table_area, action_area] =
-            Layout::horizontal([Constraint::Fill(1), Constraint::Length(12)]).areas(self.list_area);
-        self.viewport = table_area.height.saturating_sub(3) as usize; // 2 border + 1 header
         let len = self.rows().len();
         self.clamp(len);
 
-        let rows = self.rows();
-        let body: Vec<Row> = rows
-            .iter()
-            .skip(self.offset)
-            .take(self.viewport)
-            .map(|c| {
-                let name = c
-                    .names
-                    .as_ref()
-                    .and_then(|n| n.first())
-                    .map(|s| s.trim_start_matches('/'))
-                    .unwrap_or("-");
-                let short_id =
-                    c.id.as_deref()
-                        .map(|s| &s[..s.len().min(12)])
-                        .unwrap_or("-");
-                // Build a compact, deduplicated port string for the PORTS column.
-                // Entries are keyed by (public, private, protocol); IPv4/IPv6 duplicates collapse.
-                let ports: String = match &c.ports {
-                    Some(list) => {
-                        let unique: BTreeSet<(Option<u16>, u16, &str)> = list
-                            .iter()
-                            .map(|p| {
-                                // Default to tcp when Docker omits the type
-                                let proto = match p.typ {
-                                    Some(PortSummaryTypeEnum::UDP) => "udp",
-                                    Some(PortSummaryTypeEnum::SCTP) => "sctp",
-                                    _ => "tcp",
-                                };
-                                (p.public_port, p.private_port, proto)
-                            })
-                            .collect();
-
-                        unique
-                            .into_iter()
-                            .map(|(public, private, proto)| match public {
-                                // Published: host:container/proto
-                                Some(pub_p) => format!("{proto}/{pub_p}:{private}"),
-                                // Exposed only: container/proto
-                                None => format!("{proto}/{private}"),
-                            })
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    }
-                    None => String::new(),
-                };
-                Row::new(vec![
-                    Cell::from(short_id.to_owned()),
-                    Cell::from(name.to_owned()),
-                    Cell::from(c.image.clone().unwrap_or_default()),
-                    Cell::from(ports),
-                    Cell::from(c.state.map(|s| s.to_string()).unwrap_or_default()),
-                    Cell::from(c.status.clone().unwrap_or_default()),
-                ])
-            })
-            .collect();
-
-        let header = Row::new(["ID", "NAME", "IMAGE", "PORT", "STATE", "STATUS"]).style(
-            Style::new()
-                .fg(self.theme_color.list_header_text)
-                .add_modifier(Modifier::BOLD),
+        ui::search_box::draw(
+            frame,
+            self.search_area,
+            self.input_mode,
+            &self.draft,
+            self.filter.search.as_deref(),
+            self.filter.sort.as_deref(),
+            self.is_local,
+            &self.theme_color,
         );
 
-        let mut title = format!(" Containers ({len}) ");
-        if self.loading {
-            title.push_str("· loading… ");
-        }
-        if let Some(e) = &self.error {
-            title.push_str(&format!("· error: {e} "));
-        }
-
-        let table = Table::new(
-            body,
-            [
-                Constraint::Length(13),     // ID   (12 chars + 1 padding)
-                Constraint::Percentage(20), // NAME
-                Constraint::Percentage(25), // IMAGE
-                Constraint::Percentage(20), // PORTS
-                Constraint::Length(10),     // STATE
-                Constraint::Fill(1),        // STATUS
-            ],
-        )
-        .header(header)
-        .block(Block::bordered().fg(self.theme_color.border).title(title))
-        .row_highlight_style(
-            Style::new()
-                .fg(self.theme_color.border)
-                .bg(self.theme_color.text_selected)
-                .add_modifier(Modifier::REVERSED),
-        );
-
-        let mut state = TableState::default();
-        if len > 0 {
-            state.select(Some(self.cursor - self.offset));
-        }
-        frame.render_stateful_widget(table, table_area, &mut state);
-
-        // Action column: same top and bottom border so body rows line up with the table.
-        let block = Block::bordered().border_style(Style::new().fg(self.theme_color.border));
-        let inner = block.inner(action_area);
-        frame.render_widget(block, action_area);
-
-        // Header line of the action column (same height as the table header).
-        frame.render_widget(
-            Paragraph::new("Action").centered().style(
-                Style::new()
-                    .fg(self.theme_color.list_header_text)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Rect::new(inner.x, inner.y, inner.width, 1),
-        );
-
-        // Snapshot the running state of the visible rows so `rows` is not used past this point.
-        // Index `i` matches the visible row order (same skip/take as `body`).
-        let is_running: Vec<bool> = rows
-            .iter()
-            .skip(self.offset)
-            .take(self.viewport)
-            .map(|c| c.state == Some(ContainerSummaryStateEnum::RUNNING))
-            .collect();
-        // One button per visible row. Each button occupies exactly one terminal line.
-        self.row_buttons.clear();
-        let body_top = inner.y + 1;
-        for (i, idx) in (self.offset..len).take(self.viewport).enumerate() {
-            let row_rect = Rect::new(inner.x, body_top + i as u16, inner.width, 1);
-            let [state_cell, remove_cell] =
-                Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)])
-                    .flex(Flex::SpaceEvenly)
-                    .areas(row_rect);
-
-            let state_target = RowTarget {
-                row: idx,
-                action: ButtonAction::ToggleState,
-            };
-            let remove_target = RowTarget {
-                row: idx,
-                action: ButtonAction::Remove,
-            };
-
-            let remove_style = self.theme_color.btn_remove();
-            // Running container -> show Stop, otherwise -> show Start
-            let (state_icon, state_palette) = if is_running.get(i).copied().unwrap_or(false) {
-                (Icons::Stop.glyph(), self.theme_color.btn_stop())
-            } else {
-                (Icons::Start.glyph(), self.theme_color.btn_start())
-            };
-            let remove_icon = Icons::Remove.glyph();
-
-            let state_rect = Self::button_rect(state_cell, state_icon);
-            let remove_rect = Self::button_rect(remove_cell, remove_icon);
-            // Each button reads its OWN target, so hover/press never leak to the neighbour.
-            frame.render_widget(
-                Paragraph::new(format!(" {state_icon} "))
-                    .style(self.button_style(state_target, state_palette)),
-                state_rect,
+        let is_running: Vec<bool> = {
+            let rows = self.rows();
+            ui::table::draw(
+                frame,
+                table_area,
+                &rows,
+                self.offset,
+                self.viewport,
+                self.cursor,
+                self.loading,
+                self.error.as_deref(),
+                &self.theme_color,
             );
-            frame.render_widget(
-                Paragraph::new(format!(" {remove_icon} "))
-                    .style(self.button_style(remove_target, self.theme_color.btn_remove())),
-                remove_rect,
-            );
+            rows.iter()
+                .skip(self.offset)
+                .take(self.viewport)
+                .map(|c| c.state == Some(ContainerSummaryStateEnum::RUNNING))
+                .collect()
+        };
 
-            self.row_buttons.push(RowButton {
-                target: state_target,
-                rect: state_rect,
-            });
-            self.row_buttons.push(RowButton {
-                target: remove_target,
-                rect: remove_rect,
-            });
-        }
-    }
-
-    /// Shrink `cell` to the label width plus one space of padding on each side, centered.
-    fn button_rect(cell: Rect, label: &str) -> Rect {
-        let w = (ratatui::text::Line::from(label).width() as u16 + 2).min(cell.width);
-        let [rect] = Layout::horizontal([Constraint::Length(w)])
-            .flex(Flex::Center)
-            .areas(cell);
-        rect
-    }
-
-    fn button_style(&self, target: RowTarget, p: BtnPalette) -> Style {
-        if self.pressed == Some(target) {
-            Style::new().fg(p.fg_press).add_modifier(Modifier::BOLD)
-        } else if self.hovered == Some(target) {
-            Style::new().fg(p.fg_hover).add_modifier(Modifier::BOLD)
-        } else {
-            Style::new().fg(p.fg)
-        }
+        ui::action_column::draw(
+            frame,
+            action_area,
+            len,
+            self.offset,
+            self.viewport,
+            &is_running,
+            self.hovered,
+            self.pressed,
+            &mut self.row_buttons,
+            &self.theme_color,
+        );
     }
 }

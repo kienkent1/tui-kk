@@ -2,8 +2,11 @@ use std::{cmp::Ordering, collections::HashMap, sync::Arc};
 
 use bollard::{
     Docker,
-    plugin::{ContainerInspectResponse, ContainerSummary, ContainerSummaryStateEnum},
-    query_parameters::{InspectContainerOptions, ListContainersOptions},
+    plugin::{ContainerInspectResponse, ContainerSummary},
+    query_parameters::{
+        InspectContainerOptions, ListContainersOptions, RemoveContainerOptions,
+        RestartContainerOptions, StartContainerOptions, StopContainerOptions,
+    },
 };
 
 use crate::{
@@ -18,7 +21,7 @@ pub struct ContainerService {
     conn: Arc<Docker>,
 }
 
-//Call bollard API to get containers, inspect container, create, update, delete container
+// Call bollard API to get containers, inspect container, start, stop, restart, delete container
 impl ContainerService {
     pub fn new(conn: Arc<Docker>) -> Self {
         Self { conn }
@@ -85,16 +88,59 @@ impl ContainerService {
             })
             .log_err()
     }
-    // pub fn async create_container(&self, container: &ContainerDto) -> Result<ContainerDto, BaseErr>;
-    // pub fn async update_container(&self, id: &str, container: &ContainerDto) -> Result<ContainerDto, BaseErr>;
-    // pub fn async delete_container(&self, id: &str) -> Result<(), BaseErr>;
+
+    pub async fn start_container(&self, id: &str) -> Result<(), BaseErr> {
+        self.conn
+            .start_container(id, None::<StartContainerOptions>)
+            .await
+            .map_err(BaseErr::from)
+            .log_err()
+    }
+
+    pub async fn stop_container(&self, id: &str) -> Result<(), BaseErr> {
+        let opts = StopContainerOptions {
+            signal: None,
+            t: Some(10),
+        };
+        self.conn
+            .stop_container(id, Some(opts))
+            .await
+            .map_err(BaseErr::from)
+            .log_err()
+    }
+
+    pub async fn restart_container(&self, id: &str) -> Result<(), BaseErr> {
+        let opts = RestartContainerOptions {
+            signal: None,
+            t: Some(10),
+        };
+        self.conn
+            .restart_container(id, Some(opts))
+            .await
+            .map_err(BaseErr::from)
+            .log_err()
+    }
+
+    pub async fn remove_container(&self, id: &str, force: bool) -> Result<(), BaseErr> {
+        let opts = RemoveContainerOptions {
+            v: false,
+            force,
+            link: false,
+        };
+        self.conn
+            .remove_container(id, Some(opts))
+            .await
+            .map_err(BaseErr::from)
+            .log_err()
+    }
 }
 
-//Helper functions for ContainerService
+// Helper functions for ContainerService
 impl ContainerService {
     fn contains_ci(&self, v: &str, search: &str) -> bool {
         v.to_lowercase().contains(search)
     }
+
     fn match_search(&self, c: &ContainerSummary, search: &str) -> bool {
         c.names
             .iter()
@@ -106,16 +152,8 @@ impl ContainerService {
             || c.id.as_deref().is_some_and(|v| self.contains_ci(v, search))
     }
 
-    fn sort_containers(&self, list: &mut [ContainerSummary], key: ContainerSort, order: bool) {
-        match key {
-            ContainerSort::Name => list.sort_by_cached_key(|c| c.names.clone()),
-            ContainerSort::Image => list.sort_by_key(|c| c.image.clone()),
-            ContainerSort::State => list.sort_by_key(|c| c.state),
-            ContainerSort::Created => list.sort_by_key(|c| c.created),
-        }
-        if !order {
-            list.reverse();
-        }
+    pub fn sort_containers(&self, list: &mut [ContainerSummary], key: ContainerSort, desc: bool) {
+        list.sort_by(|a, b| Self::compare(Some((key, desc)), a, b));
     }
 
     fn needle(f: &BaseFilter) -> String {
@@ -138,7 +176,7 @@ impl ContainerService {
         a: &ContainerSummary,
         b: &ContainerSummary,
     ) -> Ordering {
-        let Some((key, asc)) = sort else {
+        let Some((key, desc)) = sort else {
             return Ordering::Equal;
         };
         let ord = match key {
@@ -147,7 +185,7 @@ impl ContainerService {
             ContainerSort::State => a.state.cmp(&b.state),
             ContainerSort::Created => a.created.cmp(&b.created),
         };
-        if asc { ord } else { ord.reverse() }
+        if desc { ord.reverse() } else { ord }
     }
 
     fn first_name(c: &ContainerSummary) -> &str {

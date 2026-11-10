@@ -8,7 +8,9 @@ pub enum ContainerAction {
     OpenDetail(String),
     DetailLoaded(String, Result<ContainerInspectResponse, String>),
     ToggleState(String, bool),
+    Restart(String),
     Remove(String),
+    ActionCompleted(Result<String, String>),
     BackToList,
 
     SearchPush(char),

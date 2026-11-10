@@ -1,10 +1,25 @@
 use std::collections::HashMap;
 
+use crossterm::event::{KeyEvent, MouseEvent};
+use ratatui::{
+    Frame,
+    layout::{Constraint, Layout, Rect},
+};
+
 use crate::{
-    modules::containers::pages::ContainerPage,
-    shared::base::{
-        base_action::Action,
-        base_component::{PageBox, Tx},
+    modules::{
+        containers::pages::ContainerPage,
+        dashboard::pages::DashboardPage,
+        images::pages::ImagePage,
+        logs::pages::LogPage,
+    },
+    shared::{
+        base::{
+            base_action::Action,
+            base_component::{PageBox, Tx},
+            base_widget::BaseWidget,
+        },
+        widgets::side_bar::{SideBar, SideBarEvent},
     },
     tuikk_core::{
         app_services::AppServices,
@@ -13,16 +28,12 @@ use crate::{
         route::Route,
     },
 };
-use crossterm::event::{KeyEvent, MouseEvent};
-use ratatui::{Frame, layout::Rect};
-use strum::EnumCount;
 
-pub enum PageMsg {}
-
-#[derive(Default)]
 pub struct Router {
     current: Route,
     pages: HashMap<Route, PageBox>,
+    sidebar: SideBar,
+    sidebar_area: Rect,
 }
 
 impl Router {
@@ -30,6 +41,15 @@ impl Router {
         let mut pages: HashMap<Route, PageBox> = HashMap::new();
         let services = AppServices::get();
         let app_config = AppConfig::global();
+
+        pages.insert(
+            Route::Dashboard,
+            Box::new(DashboardPage::new(
+                services,
+                tx.clone(),
+                &app_config.theme_color,
+            )),
+        );
 
         pages.insert(
             Route::Containers,
@@ -40,9 +60,33 @@ impl Router {
             )),
         );
 
+        pages.insert(
+            Route::Images,
+            Box::new(ImagePage::new(
+                services,
+                tx.clone(),
+                &app_config.theme_color,
+            )),
+        );
+
+        pages.insert(
+            Route::Logs,
+            Box::new(LogPage::new(
+                services,
+                tx.clone(),
+                &app_config.theme_color,
+            )),
+        );
+
+        let current = Route::default();
+        let mut sidebar = SideBar::new(app_config.theme_color);
+        sidebar.set_active_route(current);
+
         Self {
-            current: Route::default(),
+            current,
             pages,
+            sidebar,
+            sidebar_area: Rect::default(),
         }
     }
 
@@ -65,9 +109,11 @@ impl Router {
     pub fn scope(&self) -> KeyScope {
         self.current_page().scope()
     }
+
     pub fn captures_input(&self) -> bool {
         self.current_page().captures_input()
     }
+
     pub fn handle_command(&mut self, cmd: Command) -> Option<Action> {
         self.current_page_mut().handle_command(cmd)
     }
@@ -77,6 +123,13 @@ impl Router {
     }
 
     pub fn handle_mouse(&mut self, mouse: MouseEvent) -> Option<Action> {
+        if let Some(SideBarEvent::NavigatePage(route)) =
+            self.sidebar.handle_mouse(self.sidebar_area, mouse)
+        {
+            if self.pages.contains_key(&route) {
+                return Some(Action::Navigate(route));
+            }
+        }
         self.current_page_mut().handle_mouse_event(mouse)
     }
 
@@ -96,7 +149,16 @@ impl Router {
         }
         self.current_page_mut().on_deactivate();
         self.current = route;
+        self.sidebar.set_active_route(route);
         self.current_page_mut().on_activate();
+    }
+
+    pub fn next_route(&self) -> Route {
+        self.sidebar.next_route()
+    }
+
+    pub fn prev_route(&self) -> Route {
+        self.sidebar.prev_route()
     }
 
     pub fn tick(&mut self) -> bool {
@@ -110,7 +172,12 @@ impl Router {
     }
 
     pub fn draw(&mut self, frame: &mut Frame, area: Rect) {
-        self.current_page_mut().draw(frame, area);
+        let [sidebar_area, content_area] =
+            Layout::horizontal([Constraint::Length(22), Constraint::Fill(1)]).areas(area);
+
+        self.sidebar_area = sidebar_area;
+        self.sidebar.draw(frame, sidebar_area);
+        self.current_page_mut().draw(frame, content_area);
     }
 
     pub fn current_route(&self) -> Route {
