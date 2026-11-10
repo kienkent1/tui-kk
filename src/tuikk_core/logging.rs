@@ -7,6 +7,18 @@ use tracing_appender::{
 };
 use tracing_subscriber::{self, EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
+/// Resolve the log directory from user configuration (`AppConfig.log_dir`),
+/// falling back to the platform XDG data directory or `./logs`.
+pub fn resolve_log_dir(custom_log_dir: &Option<String>) -> PathBuf {
+    let app_prefix = env!("APP_PREFIX");
+    match custom_log_dir {
+        Some(path) if !path.trim().is_empty() => PathBuf::from(path.trim()),
+        _ => ProjectDirs::from("com", app_prefix, app_prefix)
+            .map(|proj_dirs| proj_dirs.data_local_dir().join("logs"))
+            .unwrap_or_else(|| PathBuf::from("logs")),
+    }
+}
+
 /// Window
 /// C:\Users\alice\AppData\Local\tuikk\tuikk\data\logs
 /// Linux
@@ -18,13 +30,7 @@ pub fn init_logging(
     custom_log_dir: &Option<String>,
 ) -> Result<WorkerGuard, Report> {
     let app_prefix = env!("APP_PREFIX");
-
-    let log_dir = match custom_log_dir {
-        Some(path) => PathBuf::from(path),
-        None => ProjectDirs::from("com", app_prefix, app_prefix)
-            .map(|proj_dirs| proj_dirs.data_local_dir().join("logs"))
-            .unwrap_or_else(|| PathBuf::from("logs")),
-    };
+    let log_dir = resolve_log_dir(custom_log_dir);
 
     std::fs::create_dir_all(&log_dir)?;
 

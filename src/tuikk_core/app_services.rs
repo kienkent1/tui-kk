@@ -5,7 +5,9 @@ use bollard::Docker;
 use crate::{
     modules::{
         containers::container_service::ContainerService,
-        dashboard::dashboard_service::DashboardService, images::image_service::ImageService,
+        dashboard::dashboard_service::DashboardService,
+        images::image_service::ImageService,
+        logs::log_service::LogService,
     },
     tuikk_core::docker_conn::{DockerConnError, DockerConnection},
 };
@@ -17,6 +19,7 @@ pub struct AppServices {
     pub dashboard: Arc<DashboardService>,
     pub containers: Arc<ContainerService>,
     pub images: Arc<ImageService>,
+    pub logs: Arc<LogService>,
 }
 
 impl AppServices {
@@ -25,6 +28,7 @@ impl AppServices {
         let dashboard = Arc::new(DashboardService::new(docker.clone()));
         let containers = Arc::new(ContainerService::new(docker.clone()));
         let images = Arc::new(ImageService::new(docker.clone()));
+        let logs = Arc::new(LogService::from_config());
 
         INSTANCE
             .set(AppServices {
@@ -32,6 +36,7 @@ impl AppServices {
                 dashboard,
                 containers,
                 images,
+                logs,
             })
             .map_err(|_| DockerConnError::AlreadyInitialized)
     }

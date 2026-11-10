@@ -27,6 +27,7 @@ pub static PAGES: LazyLock<Vec<Pages>> = LazyLock::new(|| {
         Pages::new(Route::Dashboard, "Dashboard"),
         Pages::new(Route::Containers, "Containers"),
         Pages::new(Route::Images, "Images"),
+        Pages::new(Route::Logs, "Logs"),
     ]
 });
 

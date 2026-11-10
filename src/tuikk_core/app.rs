@@ -182,6 +182,7 @@ impl App {
             Command::Quit => self.send(Action::Quit),
             Command::NextPage => self.send(Action::Navigate(self.next_route())),
             Command::PrevPage => self.send(Action::Navigate(self.prev_route())),
+            Command::Logs => self.send(Action::Navigate(Route::Logs)),
             Command::Restart => self.send(Action::Restart),
             Command::Suspend => self.send(Action::Suspend),
             Command::MouseCapture => self.send(Action::MouseCapture),

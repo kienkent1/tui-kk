@@ -8,7 +8,10 @@ use ratatui::{
 
 use crate::{
     modules::{
-        containers::pages::ContainerPage, dashboard::pages::DashboardPage, images::pages::ImagePage,
+        containers::pages::ContainerPage,
+        dashboard::pages::DashboardPage,
+        images::pages::ImagePage,
+        logs::pages::LogPage,
     },
     shared::{
         base::{
@@ -60,6 +63,15 @@ impl Router {
         pages.insert(
             Route::Images,
             Box::new(ImagePage::new(
+                services,
+                tx.clone(),
+                &app_config.theme_color,
+            )),
+        );
+
+        pages.insert(
+            Route::Logs,
+            Box::new(LogPage::new(
                 services,
                 tx.clone(),
                 &app_config.theme_color,

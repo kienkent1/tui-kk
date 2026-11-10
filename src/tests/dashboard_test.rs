@@ -241,7 +241,7 @@ fn sidebar_navigation_and_mouse_click() {
     let mut sb = SideBar::new(ThemeColor::dark());
     assert_eq!(sb.active_route(), Route::Dashboard);
     assert_eq!(sb.next_route(), Route::Containers);
-    assert_eq!(sb.prev_route(), Route::Images);
+    assert_eq!(sb.prev_route(), Route::Logs);
 
     sb.set_active_route(Route::Containers);
     assert_eq!(sb.active_route(), Route::Containers);
